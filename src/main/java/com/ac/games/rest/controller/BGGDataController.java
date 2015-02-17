@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,8 +16,13 @@ import org.springframework.web.client.RestTemplate;
 
 import com.ac.games.data.BGGGame;
 import com.ac.games.data.parser.BGGGameParser;
+import com.ac.games.db.GamesDatabase;
+import com.ac.games.db.MongoDBFactory;
+import com.ac.games.db.exception.ConfigurationException;
+import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.exception.GameNotFoundException;
-import com.ac.games.rest.error.SimpleErrorData;
+import com.ac.games.rest.message.SimpleErrorData;
+import com.ac.games.rest.message.SimpleMessageData;
 
 /**
  * This class should be the intercepter for REST service access to the BoardGameGeek game
@@ -48,7 +54,8 @@ public class BGGDataController {
    * or from our cached database (db).  Default is bgg.</li></ul>
    * 
    * @param bggID
-   * @return
+   * 
+   * @return A {@link BGGGame} object or {@link SimpleErrorData} message reporting the failure
    */
   @RequestMapping(method = RequestMethod.GET, produces="application/json")
   public Object getBGGData(@RequestParam(value="bggid") long bggID, @RequestParam(value="source", defaultValue="bgg") String source) {
@@ -81,22 +88,105 @@ public class BGGDataController {
 
       return game;
     } else {
-      return new SimpleErrorData("Unsupported Operation", "Database operations are unsupported at this time");
+      GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+      BGGGame game = null;
+      try {
+        game = database.readBGGGameData(bggID);
+        if (game == null)
+          return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
+      } catch (DatabaseOperationException doe) {
+        doe.printStackTrace();
+        return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+      } catch (ConfigurationException ce) {
+        ce.printStackTrace();
+        return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+      }
+      
+      return game;
     }
   }  
 
+  /**
+   * PUT Method, which should update (or potentially upsert) the provided game object.
+   * 
+   * @param game
+   * 
+   * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
+   */
   @RequestMapping(method = RequestMethod.PUT)
-  public void putBGGData() {
-    throw new RuntimeException("PUT is not supported for this service");
+  public Object putBGGData(@RequestBody BGGGame game) {
+    if (game == null)
+      return new SimpleErrorData("Game Data Error", "There was no valid BGGGame data provided");
+    
+    if (game.getBggID() < 0)
+      return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
+    
+    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    try {
+      database.updateBGGGameData(game);
+    } catch (DatabaseOperationException doe) {
+      doe.printStackTrace();
+      return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+    } catch (ConfigurationException ce) {
+      ce.printStackTrace();
+      return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    }
+    
+    return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
   }
   
+  /**
+   * POST Method, which should insert (or potentially upsert) the provided game object.
+   * 
+   * @param game
+   * 
+   * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
+   */
   @RequestMapping(method = RequestMethod.POST)
-  public void postBGGData() {
-    throw new RuntimeException("POST is not supported for this service");
+  public Object postBGGData(@RequestBody BGGGame game) {
+    if (game == null)
+      return new SimpleErrorData("Game Data Error", "There was no valid BGGGame data provided");
+    
+    if (game.getBggID() < 0)
+      return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
+    
+    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    try {
+      database.insertBGGGameData(game);
+    } catch (DatabaseOperationException doe) {
+      doe.printStackTrace();
+      return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+    } catch (ConfigurationException ce) {
+      ce.printStackTrace();
+      return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    }
+    
+    return new SimpleMessageData("Operation Successful", "The Post Request Completed Successfully");
   }
 
+  /**
+   * DELETE Method, which should delete the provided game reference, if it exists
+   * 
+   * @param bggID
+   * 
+   * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
+   */
   @RequestMapping(method = RequestMethod.DELETE)
-  public void deleteBGGData() {
-    throw new RuntimeException("DELETE is not supported for this service");
+  public Object deleteBGGData(@RequestBody long bggID) {
+    if (bggID <= 0)
+      return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
+    
+    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    try {
+      database.deleteBGGGameData(bggID);
+    } catch (DatabaseOperationException doe) {
+      doe.printStackTrace();
+      return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+    } catch (ConfigurationException ce) {
+      ce.printStackTrace();
+      return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    }
+    
+    return new SimpleMessageData("Operation Successful", "The Delete Request Completed Successfully");
   }
 }

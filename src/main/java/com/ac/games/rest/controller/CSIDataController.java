@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,8 +16,13 @@ import org.springframework.web.client.RestTemplate;
 
 import com.ac.games.data.CoolStuffIncPriceData;
 import com.ac.games.data.parser.CoolStuffIncParser;
+import com.ac.games.db.GamesDatabase;
+import com.ac.games.db.MongoDBFactory;
+import com.ac.games.db.exception.ConfigurationException;
+import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.exception.GameNotFoundException;
-import com.ac.games.rest.error.SimpleErrorData;
+import com.ac.games.rest.message.SimpleErrorData;
+import com.ac.games.rest.message.SimpleMessageData;
 
 /**
  * This class should be the intercepter for REST service access to the CoolStuffInc game
@@ -48,7 +54,7 @@ public class CSIDataController {
    * or from our cached database (db).  Default is csi.</li></ul>
    * 
    * @param csiID
-   * @return
+   * @return A {@link CoolStuffIncPriceData} object or {@link SimpleErrorData} message reporting the failure
    */
   @RequestMapping(method = RequestMethod.GET, produces="application/json")
   public Object getCSIData(@RequestParam(value="csiid") long csiID, @RequestParam(value="source", defaultValue="csi") String source) {
@@ -81,22 +87,105 @@ public class CSIDataController {
 
       return data;
     } else {
-      return new SimpleErrorData("Unsupported Operation", "Database operations are unsupported at this time");
+      GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+      CoolStuffIncPriceData data = null;
+      try {
+        data = database.readCSIPriceData(csiID);
+        if (data == null)
+          return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
+      } catch (DatabaseOperationException doe) {
+        doe.printStackTrace();
+        return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+      } catch (ConfigurationException ce) {
+        ce.printStackTrace();
+        return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+      }
+      
+      return data;
     }
   }
 
+  /**
+   * PUT Method, which should update (or potentially upsert) the provided data object.
+   * 
+   * @param data
+   * 
+   * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
+   */
   @RequestMapping(method = RequestMethod.PUT)
-  public void putCSIData() {
-    throw new RuntimeException("PUT is not supported for this service");
+  public Object putCSIData(@RequestBody CoolStuffIncPriceData data) {
+    if (data == null)
+      return new SimpleErrorData("Game Data Error", "There was no valid CSI data provided");
+    
+    if (data.getCsiID() < 0)
+      return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
+    
+    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    try {
+      database.updateCSIPriceData(data);
+    } catch (DatabaseOperationException doe) {
+      doe.printStackTrace();
+      return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+    } catch (ConfigurationException ce) {
+      ce.printStackTrace();
+      return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    }
+    
+    return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
   }
   
+  /**
+   * POST Method, which should insert (or potentially upsert) the provided game object.
+   * 
+   * @param data
+   * 
+   * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
+   */
   @RequestMapping(method = RequestMethod.POST)
-  public void postCSIData() {
-    throw new RuntimeException("POST is not supported for this service");
+  public Object postCSIData(@RequestBody CoolStuffIncPriceData data) {
+    if (data == null)
+      return new SimpleErrorData("Game Data Error", "There was no valid CSI data provided");
+    
+    if (data.getCsiID() < 0)
+      return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
+    
+    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    try {
+      database.insertCSIPriceData(data);
+    } catch (DatabaseOperationException doe) {
+      doe.printStackTrace();
+      return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+    } catch (ConfigurationException ce) {
+      ce.printStackTrace();
+      return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    }
+    
+    return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
   }
 
+  /**
+   * DELETE Method, which should delete the provided game reference, if it exists
+   * 
+   * @param csiID
+   * 
+   * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
+   */
   @RequestMapping(method = RequestMethod.DELETE)
-  public void deleteCSIData() {
-    throw new RuntimeException("DELETE is not supported for this service");
+  public Object deleteCSIData(@RequestBody long csiID) {
+    if (csiID <= 0)
+      return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
+    
+    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    try {
+      database.deleteCSIPriceData(csiID);
+    } catch (DatabaseOperationException doe) {
+      doe.printStackTrace();
+      return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+    } catch (ConfigurationException ce) {
+      ce.printStackTrace();
+      return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    }
+    
+    return new SimpleMessageData("Operation Successful", "The Delete Request Completed Successfully");
   }
 }
