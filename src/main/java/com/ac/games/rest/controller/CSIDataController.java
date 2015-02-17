@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import com.ac.games.data.CSIIDOnlyData;
 import com.ac.games.data.CoolStuffIncPriceData;
 import com.ac.games.data.parser.CoolStuffIncParser;
 import com.ac.games.db.GamesDatabase;
@@ -171,13 +172,16 @@ public class CSIDataController {
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
   @RequestMapping(method = RequestMethod.DELETE)
-  public Object deleteCSIData(@RequestBody long csiID) {
-    if (csiID <= 0)
+  public Object deleteCSIData(@RequestBody CSIIDOnlyData data) {
+    if (data == null)
+      return new SimpleErrorData("Game Data Error", "There was no valid CSI data provided");
+    
+    if (data.getCsiID() <= 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
     
     GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
     try {
-      database.deleteCSIPriceData(csiID);
+      database.deleteCSIPriceData(data.getCsiID());
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());

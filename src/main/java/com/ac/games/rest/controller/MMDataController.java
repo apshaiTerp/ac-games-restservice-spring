@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import com.ac.games.data.MMIDOnlyData;
 import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.data.parser.MiniatureMarketParser;
 import com.ac.games.db.GamesDatabase;
@@ -171,13 +172,16 @@ public class MMDataController {
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
   @RequestMapping(method = RequestMethod.DELETE)
-  public Object deleteMMData(@RequestBody long mmID) {
-    if (mmID < 0)
+  public Object deleteMMData(@RequestBody MMIDOnlyData data) {
+    if (data == null)
+      return new SimpleErrorData("Game Data Error", "There was no valid MM data provided");
+
+    if (data.getMmID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no MM ID");
     
     GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
     try {
-      database.deleteMMPriceData(mmID);
+      database.deleteMMPriceData(data.getMmID());
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());

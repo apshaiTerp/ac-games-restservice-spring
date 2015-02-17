@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import com.ac.games.data.BGGGame;
+import com.ac.games.data.BGGIDOnlyData;
 import com.ac.games.data.parser.BGGGameParser;
 import com.ac.games.db.GamesDatabase;
 import com.ac.games.db.MongoDBFactory;
@@ -172,13 +173,16 @@ public class BGGDataController {
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
   @RequestMapping(method = RequestMethod.DELETE)
-  public Object deleteBGGData(@RequestBody long bggID) {
-    if (bggID <= 0)
+  public Object deleteBGGData(@RequestBody BGGIDOnlyData data) {
+    if (data == null)
+      return new SimpleErrorData("Game Data Error", "There was no valid BGGIDOnlyData data provided");
+    
+    if (data.getBggID() <= 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
     
     GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
     try {
-      database.deleteBGGGameData(bggID);
+      database.deleteBGGGameData(data.getBggID());
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
