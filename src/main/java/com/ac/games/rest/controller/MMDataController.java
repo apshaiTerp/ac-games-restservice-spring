@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,8 +16,13 @@ import org.springframework.web.client.RestTemplate;
 
 import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.data.parser.MiniatureMarketParser;
+import com.ac.games.db.GamesDatabase;
+import com.ac.games.db.MongoDBFactory;
+import com.ac.games.db.exception.ConfigurationException;
+import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.exception.GameNotFoundException;
-import com.ac.games.rest.error.SimpleErrorData;
+import com.ac.games.rest.message.SimpleErrorData;
+import com.ac.games.rest.message.SimpleMessageData;
 
 /**
  * This class should be the intercepter for REST service access to the MiniatureMarket game
@@ -47,8 +53,8 @@ public class MMDataController {
    * <li><code>source=&lt;mm|db&gt;</code> - This indicated whether to request the game from BoardGameGeek (bgg)
    * or from our cached database (db).  Default is mm.</li></ul>
    * 
-   * @param csiID
-   * @return
+   * @param mmID
+   * @return A {@link MiniatureMarketPriceData} object or {@link SimpleErrorData} message reporting the failure
    */
   @RequestMapping(method = RequestMethod.GET, produces="application/json")
   public Object getCSIData(@RequestParam(value="mmid") long mmID, @RequestParam(value="source", defaultValue="mm") String source) {
@@ -81,22 +87,105 @@ public class MMDataController {
 
       return data;
     } else {
-      return new SimpleErrorData("Unsupported Operation", "Database operations are unsupported at this time");
+      GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+      MiniatureMarketPriceData data = null;
+      try {
+        data = database.readMMPriceData(mmID);
+        if (data == null)
+          return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
+      } catch (DatabaseOperationException doe) {
+        doe.printStackTrace();
+        return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+      } catch (ConfigurationException ce) {
+        ce.printStackTrace();
+        return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+      }
+      
+      return data;
     }
   }  
 
+  /**
+   * PUT Method, which should update (or potentially upsert) the provided data object.
+   * 
+   * @param data
+   * 
+   * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
+   */
   @RequestMapping(method = RequestMethod.PUT)
-  public void putMMData() {
-    throw new RuntimeException("PUT is not supported for this service");
+  public Object putMMData(@RequestBody MiniatureMarketPriceData data) {
+    if (data == null)
+      return new SimpleErrorData("Game Data Error", "There was no valid MM data provided");
+    
+    if (data.getMmID() < 0)
+      return new SimpleErrorData("Game Data Invalid", "The provided game has no MM ID");
+    
+    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    try {
+      database.updateMMPriceData(data);
+    } catch (DatabaseOperationException doe) {
+      doe.printStackTrace();
+      return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+    } catch (ConfigurationException ce) {
+      ce.printStackTrace();
+      return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    }
+    
+    return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
   }
   
+  /**
+   * POST Method, which should insert (or potentially upsert) the provided game object.
+   * 
+   * @param data
+   * 
+   * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
+   */
   @RequestMapping(method = RequestMethod.POST)
-  public void postMMData() {
-    throw new RuntimeException("POST is not supported for this service");
+  public Object postMMData(@RequestBody MiniatureMarketPriceData data) {
+    if (data == null)
+      return new SimpleErrorData("Game Data Error", "There was no valid MM data provided");
+    
+    if (data.getMmID() < 0)
+      return new SimpleErrorData("Game Data Invalid", "The provided game has no MM ID");
+    
+    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    try {
+      database.insertMMPriceData(data);
+    } catch (DatabaseOperationException doe) {
+      doe.printStackTrace();
+      return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+    } catch (ConfigurationException ce) {
+      ce.printStackTrace();
+      return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    }
+    
+    return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
   }
 
+  /**
+   * DELETE Method, which should delete the provided game reference, if it exists
+   * 
+   * @param mmID
+   * 
+   * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
+   */
   @RequestMapping(method = RequestMethod.DELETE)
-  public void deleteMMData() {
-    throw new RuntimeException("DELETE is not supported for this service");
+  public Object deleteMMData(@RequestBody long mmID) {
+    if (mmID < 0)
+      return new SimpleErrorData("Game Data Invalid", "The provided game has no MM ID");
+    
+    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    try {
+      database.deleteMMPriceData(mmID);
+    } catch (DatabaseOperationException doe) {
+      doe.printStackTrace();
+      return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+    } catch (ConfigurationException ce) {
+      ce.printStackTrace();
+      return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    }
+    
+    return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
   }
 }

@@ -1,4 +1,4 @@
-package com.ac.games.rest.error;
+package com.ac.games.rest.message;
 
 /**
  * @author ac010168
