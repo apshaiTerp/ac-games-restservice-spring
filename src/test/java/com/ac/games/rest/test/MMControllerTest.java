@@ -2,7 +2,6 @@ package com.ac.games.rest.test;
 
 import static com.jayway.restassured.module.mockmvc.RestAssuredMockMvc.given;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.hasItems;
 
 import org.junit.After;
 import org.junit.Before;
@@ -14,11 +13,11 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.ac.games.data.BGGGame;
-import com.ac.games.data.BGGIDOnlyData;
+import com.ac.games.data.MMIDOnlyData;
+import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
-import com.ac.games.rest.controller.BGGDataController;
+import com.ac.games.rest.controller.MMDataController;
 import com.jayway.restassured.module.mockmvc.RestAssuredMockMvc;
 
 /**
@@ -28,7 +27,7 @@ import com.jayway.restassured.module.mockmvc.RestAssuredMockMvc;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("test-mvc-configuration.xml")
 @WebAppConfiguration
-public class TestBGGController {
+public class MMControllerTest {
 
   @Autowired
   private WebApplicationContext wac;
@@ -37,14 +36,6 @@ public class TestBGGController {
 
   @Before
   public void setup() {
-    System.out.println ("**********  Inside setup...  **********");
-    
-    //mockMvc = MockMvcBuilders.webApplicationContextSetup(wac).build();
-    RestAssuredMockMvc.standaloneSetup(new BGGDataController());
-    
-
-    System.out.println ("**********  Past the Mock Setup.  Moving on to Database Connection...  **********");
-    
     //TODO - Eventually decide on how to dynamically define the database parameters
     try {
       MongoDBFactory.createMongoGamesDatabase("localhost", 27017, "livedb").initializeDBConnection();
@@ -65,74 +56,80 @@ public class TestBGGController {
     }
   }
   
+  /**
+   * This should test all the basic functions of this service in the following order:
+   * <ol>
+   * <li>GET Abyss from BGG XML API through GET service</li>
+   * <li>Validate that the Data looks correct</li>
+   * <li>GET Abyss object again and store it off</li>
+   * <li>POST Abyss to database through service</li>
+   * <li>GET Abyss from database and validate</li>
+   * <li>Modify Abyss Values</li>
+   * <li>PUT Updated Abyss into database through service</li>
+   * <li>GET Abyss from database and validate changes were affected</li>
+   * <li>DELETE Abyss from database through service</li>
+   * <li>GET Abyss and verify the Game Not Found message</li></ol>
+   */
   @Test
-  public void getBGGGame() {
-    //mockMvc = MockMvcBuilders.webApplicationContextSetup(wac).build();
-    RestAssuredMockMvc.standaloneSetup(new BGGDataController());
+  public void testMMData() {
+    RestAssuredMockMvc.standaloneSetup(new MMDataController());
     
-    System.out.println ("===  Validation GET Request from BoardGameGeek through Service  ===");
+    System.out.println ("===  Validation GET Request from MiniatureMarket through Service  ===");
     //Run our Select from BGG Master Data
     given().
-      param("bggid", 155987L).
+      param("mmid", 40693L).
     when().
-      get("/external/bggdata").
+      get("/external/mmdata").
     then().
       assertThat().
         statusCode(200).
-        body("bggID", equalTo(155987)).
-        body("name", equalTo("Abyss")).
-        body("yearPublished", equalTo(2014)).
-        body("minPlayers", equalTo(2)).
-        body("maxPlayers", equalTo(4)).
-        body("minPlayingTime", equalTo(30)).
-        body("maxPlayingTime", equalTo(60)).
-        body("publishers", hasItems("Bombyx", "Asmodee", "Asterion Press", "REBEL.pl"));
-    
+        body("mmID", equalTo(40693)).
+        body("title", equalTo("Abyss")).
+        body("sku", equalTo("ASMABY01US")).
+        body("msrpValue", equalTo(59.99f)).
+        body("curPrice", equalTo(41.39f));
+
     //Quick Version
-    System.out.println ("===  GET for Use Request from BoardGameGeek through Service  ===");
-    BGGGame reqGame = given().param("bggid", 155987L).when().get("/external/bggdata").as(BGGGame.class);
-    
+    System.out.println ("===  GET for Use Request from MiniatureMarket through Service  ===");
+    MiniatureMarketPriceData reqData = given().param("mmid", 40693L).when().get("/external/mmdata").as(MiniatureMarketPriceData.class);
+
     System.out.println ("===  POST Request from BoardGameGeek through Service  ===");
     given().
       contentType("application/json").
-      body(reqGame).
+      body(reqData).
     when().
-      post("/external/bggdata").
+      post("/external/mmdata").
     then().
       assertThat().
         statusCode(200).
         body("messageType", equalTo("Operation Successful")).
         body("message", equalTo("The Post Request Completed Successfully"));
-    
+
     System.out.println ("===  Validation GET Request from Previous POST through Service  ===");
-    //Run our Select from BGG Master Data
     given().
-      param("bggid", 155987L).
+      param("mmid", 40693L).
       param("source", "db").
     when().
-      get("/external/bggdata").
+      get("/external/mmdata").
     then().
       assertThat().
         statusCode(200).
-        body("bggID", equalTo(155987)).
-        body("name", equalTo("Abyss")).
-        body("yearPublished", equalTo(2014)).
-        body("minPlayers", equalTo(2)).
-        body("maxPlayers", equalTo(4)).
-        body("minPlayingTime", equalTo(30)).
-        body("maxPlayingTime", equalTo(60)).
-        body("publishers", hasItems("Bombyx", "Asmodee", "Asterion Press", "REBEL.pl"));
-    
+        body("mmID", equalTo(40693)).
+        body("title", equalTo("Abyss")).
+        body("sku", equalTo("ASMABY01US")).
+        body("msrpValue", equalTo(59.99f)).
+        body("curPrice", equalTo(41.39f));
+
     System.out.println ("===  PUT Request from Altered Content through Service  ===");
-    reqGame.setBggRank(2);
+    reqData.setMsrpValue(100.99);
     //TMNT Movie Reference
-    reqGame.setBggRating(9.95);
-    
+    reqData.setCurPrice(9.95);
+
     given().
       contentType("application/json").
-      body(reqGame).
+      body(reqData).
     when().
-      put("/external/bggdata").
+      put("/external/mmdata").
     then().
       assertThat().
         statusCode(200).
@@ -140,37 +137,36 @@ public class TestBGGController {
         body("message", equalTo("The Put Request Completed Successfully"));
     
     System.out.println ("===  Validation GET Request from Previous PUT through Service  ===");
-    //Run our Select from BGG Master Data
     given().
-      param("bggid", 155987L).
+      param("mmid", 40693L).
       param("source", "db").
     when().
-      get("/external/bggdata").
+      get("/external/mmdata").
     then().
       assertThat().
         statusCode(200).
-        body("bggID", equalTo(155987)).
-        body("bggRank", equalTo(2)).
-        body("bggRating", equalTo(9.95f));
+        body("mmID", equalTo(40693)).
+        body("msrpValue", equalTo(100.99f)).
+        body("curPrice", equalTo(9.95f));
     
     System.out.println ("===  DELETE Request through Service  ===");
     given().
       contentType("application/json").
-      body(new BGGIDOnlyData(reqGame.getBggID())).
+      body(new MMIDOnlyData(reqData.getMmID())).
     when().
-      delete("/external/bggdata").
+      delete("/external/mmdata").
     then().
       assertThat().
         statusCode(200).
         body("messageType", equalTo("Operation Successful")).
         body("message", equalTo("The Delete Request Completed Successfully"));
-    
+
     System.out.println ("===  GET Request from Database through Service that finds nothing  ===");
     given().
-      param("bggid", 155987L).
+      param("mmid", 40693L).
       param("source", "db").
     when().
-      get("/external/bggdata").
+      get("/external/mmdata").
     then().
       assertThat().
         statusCode(200).

@@ -161,13 +161,13 @@ public class MMDataController {
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
     }
     
-    return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
+    return new SimpleMessageData("Operation Successful", "The Post Request Completed Successfully");
   }
 
   /**
    * DELETE Method, which should delete the provided game reference, if it exists
    * 
-   * @param mmID
+   * @param data
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
@@ -190,6 +190,6 @@ public class MMDataController {
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
     }
     
-    return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
+    return new SimpleMessageData("Operation Successful", "The Delete Request Completed Successfully");
   }
 }
