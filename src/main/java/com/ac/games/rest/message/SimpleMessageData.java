@@ -7,26 +7,26 @@ package com.ac.games.rest.message;
 public class SimpleMessageData {
   
   /** A placeholder for the error type.  This may get converted to an enum at some point. */
-  private final String errorType;
+  private final String messageType;
   /** The text we want returned for this message. */
-  private final String errorMessage;
+  private final String message;
   
-  public SimpleMessageData(String errorType, String errorMessage) {
-    this.errorType    = errorType;
-    this.errorMessage = errorMessage;
+  public SimpleMessageData(String messageType, String message) {
+    this.messageType = messageType;
+    this.message     = message;
   }
 
   /**
    * @return the errorType
    */
-  public String getErrorType() {
-    return errorType;
+  public String getMessageType() {
+    return messageType;
   }
 
   /**
    * @return the errorMessage
    */
-  public String getErrorMessage() {
-    return errorMessage;
+  public String getMessage() {
+    return message;
   }
 }

@@ -42,6 +42,8 @@
         <games.pojo.version>0.1.0-SNAPSHOT</games.pojo.version>
         <games.db.version>0.1.0-SNAPSHOT</games.db.version>
         <games.db.mongo.version>0.1.0-SNAPSHOT</games.db.mongo.version>
+        <spring.test.mvc.version>1.0.0.M2</spring.test.mvc.version>
+        <rest-assured.version>2.4.0</rest-assured.version>
         
         <!--  Plugin Versions  -->
         <clover.version>3.3.0</clover.version>
@@ -82,6 +84,34 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test-mvc</artifactId>
+            <version>${spring.test.mvc.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.jayway.restassured</groupId>
+            <artifactId>spring-mock-mvc</artifactId>
+            <version>${rest-assured.version}</version>
+            <scope>test</scope>
+        </dependency>
+        
     </dependencies>
         
     <build>
