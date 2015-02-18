@@ -168,7 +168,7 @@ public class BGGDataController {
   /**
    * DELETE Method, which should delete the provided game reference, if it exists
    * 
-   * @param bggID
+   * @param data
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
