@@ -57,7 +57,7 @@ public class MMDataController {
    * @param mmID
    * @return A {@link MiniatureMarketPriceData} object or {@link SimpleErrorData} message reporting the failure
    */
-  @RequestMapping(method = RequestMethod.GET, produces="application/json")
+  @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
   public Object getCSIData(@RequestParam(value="mmid") long mmID, @RequestParam(value="source", defaultValue="mm") String source) {
     if ((!source.equalsIgnoreCase("mm")) && (!source.equalsIgnoreCase("db")))
       return new SimpleErrorData("Invalid Parameters", "The source parameter value of " + source + " is not a valid source value.");

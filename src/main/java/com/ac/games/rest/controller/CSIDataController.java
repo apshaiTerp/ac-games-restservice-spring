@@ -57,7 +57,7 @@ public class CSIDataController {
    * @param csiID
    * @return A {@link CoolStuffIncPriceData} object or {@link SimpleErrorData} message reporting the failure
    */
-  @RequestMapping(method = RequestMethod.GET, produces="application/json")
+  @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
   public Object getCSIData(@RequestParam(value="csiid") long csiID, @RequestParam(value="source", defaultValue="csi") String source) {
     if ((!source.equalsIgnoreCase("csi")) && (!source.equalsIgnoreCase("db")))
       return new SimpleErrorData("Invalid Parameters", "The source parameter value of " + source + " is not a valid source value.");

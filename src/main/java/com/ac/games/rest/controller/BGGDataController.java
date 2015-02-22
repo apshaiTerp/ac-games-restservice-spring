@@ -58,7 +58,7 @@ public class BGGDataController {
    * 
    * @return A {@link BGGGame} object or {@link SimpleErrorData} message reporting the failure
    */
-  @RequestMapping(method = RequestMethod.GET, produces="application/json")
+  @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
   public Object getBGGData(@RequestParam(value="bggid") long bggID, @RequestParam(value="source", defaultValue="bgg") String source) {
     if ((!source.equalsIgnoreCase("bgg")) && (!source.equalsIgnoreCase("db")))
       return new SimpleErrorData("Invalid Parameters", "The source parameter value of " + source + " is not a valid source value.");
