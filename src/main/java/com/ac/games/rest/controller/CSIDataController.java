@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.ac.games.data.CSIIDOnlyData;
@@ -62,6 +64,9 @@ public class CSIDataController {
     if ((!source.equalsIgnoreCase("csi")) && (!source.equalsIgnoreCase("db")))
       return new SimpleErrorData("Invalid Parameters", "The source parameter value of " + source + " is not a valid source value.");
     
+    //DEBUG
+    System.out.println ("Processing csi request for csiid " + csiID + "...");
+    
     if (source.equalsIgnoreCase("csi")) {
       //Create the RestTemplate to access the external HTML page
       RestTemplate restTemplate = new RestTemplate();
@@ -69,14 +74,32 @@ public class CSIDataController {
       headers.setAccept(Arrays.asList(MediaType.TEXT_HTML));
       HttpEntity<String> entity = new HttpEntity<String>("parameters", headers);
       
-      //Run the GET command to retrieve the HTML Body
-      ResponseEntity<String> gameResponse = restTemplate.exchange(URL_TEMPLATE.replace(CSIID_MARKER, "" + csiID), 
-          HttpMethod.GET, entity, String.class);
-
-      String htmlText = gameResponse.getBody();
       CoolStuffIncPriceData data = null;
       try {
+        //Run the GET command to retrieve the HTML Body
+        ResponseEntity<String> gameResponse = restTemplate.exchange(URL_TEMPLATE.replace(CSIID_MARKER, "" + csiID), 
+            HttpMethod.GET, entity, String.class);
+
+        String htmlText = gameResponse.getBody();
         data = CoolStuffIncParser.parseCSIHTML(htmlText, csiID);
+      } catch (HttpServerErrorException hsee) {
+        if (hsee.getMessage().contains("503 Service Unavailable")) {
+          System.out.println ("The CSI server is icing me out again...");
+          return new SimpleErrorData("Server Timeout 503", "The CSI server has stopped answering my requests");
+        } else {
+          System.out.println ("Something probably wrong happened here...");
+          hsee.printStackTrace();
+          return new SimpleErrorData("Operation Error", "An error has occurred: " + hsee.getMessage());
+        }
+      } catch (HttpClientErrorException hcee) {
+        if (hcee.getMessage().contains("404 Not Found")) {
+          System.out.println ("I could not find this game.");
+          return new SimpleErrorData("Game Not Found", "The requested csiid of " + csiID + " could not be found.");
+        } else {
+          System.out.println ("Something probably wrong happened here...");
+          hcee.printStackTrace();
+          return new SimpleErrorData("Operation Error", "An error has occurred: " + hcee.getMessage());
+        }
       } catch (GameNotFoundException gnfe) {
         System.out.println ("I could not find this game.");
         return new SimpleErrorData("Game Not Found", "The requested csiid of " + csiID + " could not be found.");

@@ -181,4 +181,27 @@ public class BGGControllerTest {
         statusCode(200).
         body("errorType", equalTo("Game Not Found"));
   }
+  
+  @Test
+  public void testBGGGameBatch() {
+    RestAssuredMockMvc.standaloneSetup(new BGGDataController());
+    
+    System.out.println ("===  Validation GET Request from BoardGameGeek through Service  ===");
+    //Run our Select from BGG Master Data
+    given().
+      param("bggid", 12001L).
+      param("batch", 3).
+    when().
+      get("/external/bggdata").
+    then().
+      assertThat().
+        statusCode(200).
+        body("size()", equalTo(3)).
+        body("[0].bggID", equalTo(12001)).
+        body("[0].name", equalTo("Lunker Lake")).
+        body("[1].bggID", equalTo(12002)).
+        body("[1].name", equalTo("Jambo")).
+        body("[2].bggID", equalTo(12003)).
+        body("[2].name", equalTo("Murder Mystery Party: When an Angel Dies"));
+  }
 }
