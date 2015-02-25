@@ -49,6 +49,7 @@
         <clover.version>3.3.0</clover.version>
         <reports.plugin.version>2.7</reports.plugin.version>
         <javadoc.plugin.version>2.9.1</javadoc.plugin.version>
+        <surefire.plugin.version>2.18.1</surefire.plugin.version>
     </properties>
     
     <dependencies>
@@ -227,6 +228,11 @@
                     <docfilessubdirs>true</docfilessubdirs>
                     <source>1.6</source>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+                <version>${surefire.plugin.version}</version>
             </plugin>
         </plugins>
     </reporting>

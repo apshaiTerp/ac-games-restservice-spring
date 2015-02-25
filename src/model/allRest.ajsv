@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--AgileJ Ltd. (http://www.agilej.com)-->
+<ajsv>
+    <diagram creationDate="2015-Feb-25 03:04" filterScript="" licenseGrade="single" licenseeName="Adam_Carter" licenseeOrganization="Personal" version="1.7.17.v20140508-2136">
+        <class className="com.ac.games.rest.test.BGGControllerTest" project="ac-games-restservice-spring" xLocation="232" yLocation="301"/>
+        <class className="com.ac.games.rest.test.CSIControllerTest" project="ac-games-restservice-spring" xLocation="662" yLocation="303"/>
+        <class className="com.ac.games.rest.test.MMControllerTest" project="ac-games-restservice-spring" xLocation="1050" yLocation="296"/>
+        <class className="com.ac.games.rest.Application" project="ac-games-restservice-spring" xLocation="660" yLocation="-94"/>
+        <class className="com.ac.games.rest.controller.BGGDataController" project="ac-games-restservice-spring" xLocation="185" yLocation="34"/>
+        <class className="com.ac.games.rest.controller.CSIDataController" project="ac-games-restservice-spring" xLocation="620" yLocation="32"/>
+        <class className="com.ac.games.rest.controller.MMDataController" project="ac-games-restservice-spring" xLocation="997" yLocation="33"/>
+    </diagram>
+</ajsv>
