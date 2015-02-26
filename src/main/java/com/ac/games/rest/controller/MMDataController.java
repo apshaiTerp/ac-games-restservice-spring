@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.ac.games.data.MMIDOnlyData;
@@ -58,7 +60,7 @@ public class MMDataController {
    * @return A {@link MiniatureMarketPriceData} object or {@link SimpleErrorData} message reporting the failure
    */
   @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
-  public Object getCSIData(@RequestParam(value="mmid") long mmID, @RequestParam(value="source", defaultValue="mm") String source) {
+  public Object getMMData(@RequestParam(value="mmid") long mmID, @RequestParam(value="source", defaultValue="mm") String source) {
     if ((!source.equalsIgnoreCase("mm")) && (!source.equalsIgnoreCase("db")))
       return new SimpleErrorData("Invalid Parameters", "The source parameter value of " + source + " is not a valid source value.");
   
@@ -69,17 +71,35 @@ public class MMDataController {
       headers.setAccept(Arrays.asList(MediaType.TEXT_HTML));
       HttpEntity<String> entity = new HttpEntity<String>("parameters", headers);
       
-      //Run the GET command to retrieve the HTML Body
-      ResponseEntity<String> gameResponse = restTemplate.exchange(URL_TEMPLATE.replace(MMID_MARKER, "" + mmID), 
-          HttpMethod.GET, entity, String.class);
-
-      String htmlText = gameResponse.getBody();
       MiniatureMarketPriceData data = null;
       try {
+        //Run the GET command to retrieve the HTML Body
+        ResponseEntity<String> gameResponse = restTemplate.exchange(URL_TEMPLATE.replace(MMID_MARKER, "" + mmID), 
+            HttpMethod.GET, entity, String.class);
+
+        String htmlText = gameResponse.getBody();
         data = MiniatureMarketParser.parseMMHTML(htmlText);
       } catch (GameNotFoundException gnfe) {
         System.out.println ("I could not find this game.");
         return new SimpleErrorData("Game Not Found", "The requested csiid of " + mmID + " could not be found.");
+      } catch (HttpServerErrorException hsee) {
+        if (hsee.getMessage().contains("503 Service Unavailable")) {
+          System.out.println ("The MM server is icing me out again...");
+          return new SimpleErrorData("Server Timeout 503", "The MM server has stopped answering my requests");
+        } else {
+          System.out.println ("Something probably wrong happened here...");
+          hsee.printStackTrace();
+          return new SimpleErrorData("Operation Error", "An error has occurred: " + hsee.getMessage());
+        }
+      } catch (HttpClientErrorException hcee) {
+        if (hcee.getMessage().contains("404 Not Found")) {
+          System.out.println ("I could not find this game.");
+          return new SimpleErrorData("Game Not Found", "The requested mmid of " + mmID + " could not be found.");
+        } else {
+          System.out.println ("Something probably wrong happened here...");
+          hcee.printStackTrace();
+          return new SimpleErrorData("Operation Error", "An error has occurred: " + hcee.getMessage());
+        }
       } catch (Throwable t) {
         System.out.println ("Something terribly wrong happened here...");
         t.printStackTrace();
