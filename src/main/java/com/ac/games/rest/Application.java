@@ -31,10 +31,11 @@ public class Application extends SpringBootServletInitializer {
     
     //TODO - Eventually decide on how to dynamically define the database parameters
     try {
-      MongoDBFactory.createMongoGamesDatabase("localhost", 27017, "livedb").initializeDBConnection();
+      MongoDBFactory.createMongoGamesDatabase("192.168.1.8", 27017, "livedb").initializeDBConnection();
     } catch (ConfigurationException e) {
       e.printStackTrace();
       System.out.println ("Shutting down system!");
+      System.exit(1);
     }
     
     SpringApplication.run(Application.class, args);
