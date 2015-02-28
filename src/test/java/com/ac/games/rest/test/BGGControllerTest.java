@@ -41,7 +41,7 @@ public class BGGControllerTest {
     //TODO - Eventually decide on how to dynamically define the database parameters
     Application.databaseHost = "localhost";
     Application.databasePort = 27017;
-    Application.databaseName = "mockdb";
+    Application.databaseName = "mockDB";
     try {
       MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName).initializeDBConnection();
       
