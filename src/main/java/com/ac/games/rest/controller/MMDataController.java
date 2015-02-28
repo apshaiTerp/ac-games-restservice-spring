@@ -20,6 +20,7 @@ import com.ac.games.data.MMIDOnlyData;
 import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.data.parser.MiniatureMarketParser;
 import com.ac.games.db.GamesDatabase;
+import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.exception.GameNotFoundException;
@@ -46,9 +47,6 @@ public class MMDataController {
   /** The replacement marker in the URL_TEMPLATE */
   public final static String MMID_MARKER  = "<mmid>";
   
-  /** Reference to the master database connection */
-  private GamesDatabase database = null;
-
   /**
    * GET method designed to handle retrieving the Miniature Market content from the
    * miniaturemarket website and return the formatted {@link MiniatureMarketPriceData} object.
@@ -111,20 +109,26 @@ public class MMDataController {
 
       return data;
     } else {
-      if (database == null)
-        database = Application.database;
-
+      GamesDatabase database = null; 
       MiniatureMarketPriceData data = null;
+      
       try {
+        database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+        database.initializeDBConnection();
+        
         data = database.readMMPriceData(mmID);
         if (data == null)
           return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
       } catch (DatabaseOperationException doe) {
         doe.printStackTrace();
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
       } catch (ConfigurationException ce) {
         ce.printStackTrace();
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+      } finally {
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       }
       
       return data;
@@ -146,17 +150,22 @@ public class MMDataController {
     if (data.getMmID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no MM ID");
     
-    if (database == null)
-      database = Application.database;
-
+    GamesDatabase database = null; 
     try {
+      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database.initializeDBConnection();
+      
       database.updateMMPriceData(data);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    } finally {
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
@@ -177,17 +186,22 @@ public class MMDataController {
     if (data.getMmID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no MM ID");
     
-    if (database == null)
-      database = Application.database;
-
+    GamesDatabase database = null; 
     try {
+      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database.initializeDBConnection();
+      
       database.insertMMPriceData(data);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    } finally {
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Post Request Completed Successfully");
@@ -208,17 +222,22 @@ public class MMDataController {
     if (data.getMmID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no MM ID");
     
-    if (database == null)
-      database = Application.database;
-
+    GamesDatabase database = null; 
     try {
+      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database.initializeDBConnection();
+      
       database.deleteMMPriceData(data.getMmID());
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    } finally {
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Delete Request Completed Successfully");

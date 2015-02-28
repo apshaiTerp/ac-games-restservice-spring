@@ -20,6 +20,7 @@ import com.ac.games.data.CSIIDOnlyData;
 import com.ac.games.data.CoolStuffIncPriceData;
 import com.ac.games.data.parser.CoolStuffIncParser;
 import com.ac.games.db.GamesDatabase;
+import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.exception.GameNotFoundException;
@@ -46,9 +47,6 @@ public class CSIDataController {
   /** The replacement marker in the URL_TEMPLATE */
   public final static String CSIID_MARKER = "<csiid>";
   
-  /** Reference to the master database connection */
-  private GamesDatabase database = null;
-
   /**
    * GET method designed to handle retrieving the CoolStuffInc content from the
    * coolstuffinc website and return the formatted {@link CoolStuffIncPriceData} object.
@@ -114,20 +112,26 @@ public class CSIDataController {
 
       return data;
     } else {
-      if (database == null)
-        database = Application.database;
-
+      GamesDatabase database = null; 
       CoolStuffIncPriceData data = null;
+      
       try {
+        database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+        database.initializeDBConnection();
+        
         data = database.readCSIPriceData(csiID);
         if (data == null)
           return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
       } catch (DatabaseOperationException doe) {
         doe.printStackTrace();
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
       } catch (ConfigurationException ce) {
         ce.printStackTrace();
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+      } finally {
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       }
       
       return data;
@@ -149,17 +153,22 @@ public class CSIDataController {
     if (data.getCsiID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
     
-    if (database == null)
-      database = Application.database;
-
+    GamesDatabase database = null; 
     try {
+      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database.initializeDBConnection();
+      
       database.updateCSIPriceData(data);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    } finally {
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
@@ -180,17 +189,22 @@ public class CSIDataController {
     if (data.getCsiID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
     
-    if (database == null)
-      database = Application.database;
-
+    GamesDatabase database = null; 
     try {
+      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database.initializeDBConnection();
+      
       database.insertCSIPriceData(data);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    } finally {
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Post Request Completed Successfully");
@@ -211,17 +225,22 @@ public class CSIDataController {
     if (data.getCsiID() <= 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
     
-    if (database == null)
-      database = Application.database;
-
+    GamesDatabase database = null; 
     try {
+      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database.initializeDBConnection();
+      
       database.deleteCSIPriceData(data.getCsiID());
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    } finally {
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Delete Request Completed Successfully");

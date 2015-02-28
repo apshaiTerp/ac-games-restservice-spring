@@ -20,6 +20,7 @@ import com.ac.games.data.BGGGame;
 import com.ac.games.data.BGGIDOnlyData;
 import com.ac.games.data.parser.BGGGameParser;
 import com.ac.games.db.GamesDatabase;
+import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.exception.GameNotFoundException;
@@ -45,9 +46,6 @@ public class BGGDataController {
   public final static String URL_TEMPLATE = "http://www.boardgamegeek.com/xmlapi/boardgame/<bggid>?stats=1";
   /** The replacement marker in the URL_TEMPLATE */
   public final static String BGGID_MARKER = "<bggid>";
-  
-  /** Reference to the master database connection */
-  private GamesDatabase database = null;
   
   /**
    * GET method designed to handle retrieving the BoardGameGeek content from the
@@ -128,20 +126,26 @@ public class BGGDataController {
 
       return gameResult;
     } else {
-      if (database == null)
-        database = Application.database;
-      
+      GamesDatabase database = null; 
       BGGGame game = null;
+      
       try {
+        database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+        database.initializeDBConnection();
+        
         game = database.readBGGGameData(bggID);
         if (game == null)
           return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
       } catch (DatabaseOperationException doe) {
         doe.printStackTrace();
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
       } catch (ConfigurationException ce) {
         ce.printStackTrace();
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+      } finally {
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       }
       
       return game;
@@ -163,17 +167,22 @@ public class BGGDataController {
     if (game.getBggID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
     
-    if (database == null)
-      database = Application.database;
-    
+    GamesDatabase database = null; 
     try {
+      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database.initializeDBConnection();
+      
       database.updateBGGGameData(game);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    } finally {
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
@@ -194,17 +203,22 @@ public class BGGDataController {
     if (game.getBggID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
     
-    if (database == null)
-      database = Application.database;
-
+    GamesDatabase database = null; 
     try {
+      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database.initializeDBConnection();
+      
       database.insertBGGGameData(game);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    } finally {
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Post Request Completed Successfully");
@@ -225,17 +239,22 @@ public class BGGDataController {
     if (data.getBggID() <= 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
     
-    if (database == null)
-      database = Application.database;
-
+    GamesDatabase database = null; 
     try {
+      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database.initializeDBConnection();
+      
       database.deleteBGGGameData(data.getBggID());
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    } finally {
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Delete Request Completed Successfully");

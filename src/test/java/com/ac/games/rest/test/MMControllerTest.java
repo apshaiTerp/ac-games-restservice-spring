@@ -17,6 +17,7 @@ import com.ac.games.data.MMIDOnlyData;
 import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
+import com.ac.games.rest.Application;
 import com.ac.games.rest.controller.MMDataController;
 import com.jayway.restassured.module.mockmvc.RestAssuredMockMvc;
 
@@ -37,8 +38,11 @@ public class MMControllerTest {
   @Before
   public void setup() {
     //TODO - Eventually decide on how to dynamically define the database parameters
+    Application.databaseHost = "localhost";
+    Application.databasePort = 27017;
+    Application.databaseName = "mockdb";
     try {
-      MongoDBFactory.createMongoGamesDatabase("localhost", 27017, "livedb").initializeDBConnection();
+      MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName).initializeDBConnection();
       
       System.out.println ("**********  Database Configuration Enabled  **********");
     } catch (ConfigurationException e) {

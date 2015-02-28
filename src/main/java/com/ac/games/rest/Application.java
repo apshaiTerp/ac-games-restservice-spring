@@ -23,6 +23,13 @@ public class Application extends SpringBootServletInitializer {
   
   public static GamesDatabase database;
   
+  /** The Host URL for our Mongo Instance */
+  public static String databaseHost = "192.168.1.8";
+  /** The Host Port for our Mongo Instance */
+  public static int    databasePort = 27017;
+  /** The Host Database Name for our Mongo Database */
+  public static String databaseName = "livedb";
+  
   @Override
   protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
     return application.sources(Application.class);
@@ -33,7 +40,7 @@ public class Application extends SpringBootServletInitializer {
     
     //TODO - Eventually decide on how to dynamically define the database parameters
     try {
-      database = MongoDBFactory.createMongoGamesDatabase("192.168.1.8", 27017, "livedb");
+      database = MongoDBFactory.createMongoGamesDatabase(databaseHost, databasePort, databaseName);
       database.initializeDBConnection();
     } catch (ConfigurationException e) {
       e.printStackTrace();
