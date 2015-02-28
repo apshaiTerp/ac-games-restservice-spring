@@ -4,6 +4,8 @@ import javax.annotation.PreDestroy;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.context.web.SpringBootServletInitializer;
 import org.springframework.context.annotation.ComponentScan;
 
 import com.ac.games.db.GamesDatabase;
@@ -17,7 +19,12 @@ import com.ac.games.db.exception.ConfigurationException;
  */
 @ComponentScan
 @EnableAutoConfiguration
-public class Application {
+public class Application extends SpringBootServletInitializer {
+  
+  @Override
+  protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+    return application.sources(Application.class);
+  }
   
   /** Main method, which is starting point for service using Spring launcher */
   public static void main(String[] args) {
