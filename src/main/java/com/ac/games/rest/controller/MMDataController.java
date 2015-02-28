@@ -20,10 +20,10 @@ import com.ac.games.data.MMIDOnlyData;
 import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.data.parser.MiniatureMarketParser;
 import com.ac.games.db.GamesDatabase;
-import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.exception.GameNotFoundException;
+import com.ac.games.rest.Application;
 import com.ac.games.rest.message.SimpleErrorData;
 import com.ac.games.rest.message.SimpleMessageData;
 
@@ -46,6 +46,9 @@ public class MMDataController {
   /** The replacement marker in the URL_TEMPLATE */
   public final static String MMID_MARKER  = "<mmid>";
   
+  /** Reference to the master database connection */
+  private GamesDatabase database = null;
+
   /**
    * GET method designed to handle retrieving the Miniature Market content from the
    * miniaturemarket website and return the formatted {@link MiniatureMarketPriceData} object.
@@ -108,7 +111,9 @@ public class MMDataController {
 
       return data;
     } else {
-      GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+      if (database == null)
+        database = Application.database;
+
       MiniatureMarketPriceData data = null;
       try {
         data = database.readMMPriceData(mmID);
@@ -141,7 +146,9 @@ public class MMDataController {
     if (data.getMmID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no MM ID");
     
-    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    if (database == null)
+      database = Application.database;
+
     try {
       database.updateMMPriceData(data);
     } catch (DatabaseOperationException doe) {
@@ -170,7 +177,9 @@ public class MMDataController {
     if (data.getMmID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no MM ID");
     
-    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    if (database == null)
+      database = Application.database;
+
     try {
       database.insertMMPriceData(data);
     } catch (DatabaseOperationException doe) {
@@ -199,7 +208,9 @@ public class MMDataController {
     if (data.getMmID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no MM ID");
     
-    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    if (database == null)
+      database = Application.database;
+
     try {
       database.deleteMMPriceData(data.getMmID());
     } catch (DatabaseOperationException doe) {

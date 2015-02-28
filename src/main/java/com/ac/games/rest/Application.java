@@ -21,6 +21,8 @@ import com.ac.games.db.exception.ConfigurationException;
 @EnableAutoConfiguration
 public class Application extends SpringBootServletInitializer {
   
+  public static GamesDatabase database;
+  
   @Override
   protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
     return application.sources(Application.class);
@@ -31,7 +33,8 @@ public class Application extends SpringBootServletInitializer {
     
     //TODO - Eventually decide on how to dynamically define the database parameters
     try {
-      MongoDBFactory.createMongoGamesDatabase("192.168.1.8", 27017, "livedb").initializeDBConnection();
+      database = MongoDBFactory.createMongoGamesDatabase("192.168.1.8", 27017, "livedb");
+      database.initializeDBConnection();
     } catch (ConfigurationException e) {
       e.printStackTrace();
       System.out.println ("Shutting down system!");
@@ -44,7 +47,6 @@ public class Application extends SpringBootServletInitializer {
   @PreDestroy
   public static void shutdownHook() {
     System.out.println (">>>  I'm inside the shutdownHook  <<");
-    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
     try {
       database.closeDBConnection();
     } catch (ConfigurationException e) {

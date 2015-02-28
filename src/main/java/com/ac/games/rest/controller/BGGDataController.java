@@ -20,10 +20,10 @@ import com.ac.games.data.BGGGame;
 import com.ac.games.data.BGGIDOnlyData;
 import com.ac.games.data.parser.BGGGameParser;
 import com.ac.games.db.GamesDatabase;
-import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.exception.GameNotFoundException;
+import com.ac.games.rest.Application;
 import com.ac.games.rest.message.SimpleErrorData;
 import com.ac.games.rest.message.SimpleMessageData;
 
@@ -45,6 +45,9 @@ public class BGGDataController {
   public final static String URL_TEMPLATE = "http://www.boardgamegeek.com/xmlapi/boardgame/<bggid>?stats=1";
   /** The replacement marker in the URL_TEMPLATE */
   public final static String BGGID_MARKER = "<bggid>";
+  
+  /** Reference to the master database connection */
+  private GamesDatabase database = null;
   
   /**
    * GET method designed to handle retrieving the BoardGameGeek content from the
@@ -125,7 +128,9 @@ public class BGGDataController {
 
       return gameResult;
     } else {
-      GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+      if (database == null)
+        database = Application.database;
+      
       BGGGame game = null;
       try {
         game = database.readBGGGameData(bggID);
@@ -158,7 +163,9 @@ public class BGGDataController {
     if (game.getBggID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
     
-    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    if (database == null)
+      database = Application.database;
+    
     try {
       database.updateBGGGameData(game);
     } catch (DatabaseOperationException doe) {
@@ -187,7 +194,9 @@ public class BGGDataController {
     if (game.getBggID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
     
-    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    if (database == null)
+      database = Application.database;
+
     try {
       database.insertBGGGameData(game);
     } catch (DatabaseOperationException doe) {
@@ -216,7 +225,9 @@ public class BGGDataController {
     if (data.getBggID() <= 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
     
-    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    if (database == null)
+      database = Application.database;
+
     try {
       database.deleteBGGGameData(data.getBggID());
     } catch (DatabaseOperationException doe) {

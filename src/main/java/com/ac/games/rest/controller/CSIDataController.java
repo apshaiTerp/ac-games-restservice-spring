@@ -20,10 +20,10 @@ import com.ac.games.data.CSIIDOnlyData;
 import com.ac.games.data.CoolStuffIncPriceData;
 import com.ac.games.data.parser.CoolStuffIncParser;
 import com.ac.games.db.GamesDatabase;
-import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.exception.GameNotFoundException;
+import com.ac.games.rest.Application;
 import com.ac.games.rest.message.SimpleErrorData;
 import com.ac.games.rest.message.SimpleMessageData;
 
@@ -46,6 +46,9 @@ public class CSIDataController {
   /** The replacement marker in the URL_TEMPLATE */
   public final static String CSIID_MARKER = "<csiid>";
   
+  /** Reference to the master database connection */
+  private GamesDatabase database = null;
+
   /**
    * GET method designed to handle retrieving the CoolStuffInc content from the
    * coolstuffinc website and return the formatted {@link CoolStuffIncPriceData} object.
@@ -111,7 +114,9 @@ public class CSIDataController {
 
       return data;
     } else {
-      GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+      if (database == null)
+        database = Application.database;
+
       CoolStuffIncPriceData data = null;
       try {
         data = database.readCSIPriceData(csiID);
@@ -144,7 +149,9 @@ public class CSIDataController {
     if (data.getCsiID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
     
-    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    if (database == null)
+      database = Application.database;
+
     try {
       database.updateCSIPriceData(data);
     } catch (DatabaseOperationException doe) {
@@ -173,7 +180,9 @@ public class CSIDataController {
     if (data.getCsiID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
     
-    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    if (database == null)
+      database = Application.database;
+
     try {
       database.insertCSIPriceData(data);
     } catch (DatabaseOperationException doe) {
@@ -202,7 +211,9 @@ public class CSIDataController {
     if (data.getCsiID() <= 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
     
-    GamesDatabase database = MongoDBFactory.getMongoGamesDatabase();
+    if (database == null)
+      database = Application.database;
+
     try {
       database.deleteCSIPriceData(data.getCsiID());
     } catch (DatabaseOperationException doe) {
