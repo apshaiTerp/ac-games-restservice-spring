@@ -24,7 +24,7 @@ public class Application extends SpringBootServletInitializer {
   public static GamesDatabase database;
   
   /** The Host URL for our Mongo Instance */
-  public static String databaseHost = "192.168.1.8";
+  public static String databaseHost = "192.168.1.9";
   /** The Host Port for our Mongo Instance */
   public static int    databasePort = 27017;
   /** The Host Database Name for our Mongo Database */
