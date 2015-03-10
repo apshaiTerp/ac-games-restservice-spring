@@ -120,8 +120,6 @@ public class CSIDataController {
         database.initializeDBConnection();
         
         data = database.readCSIPriceData(csiID);
-        if (data == null)
-          return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
       } catch (DatabaseOperationException doe) {
         doe.printStackTrace();
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -133,6 +131,9 @@ public class CSIDataController {
       } finally {
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       }
+      
+      if (data == null)
+        return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
       
       return data;
     }

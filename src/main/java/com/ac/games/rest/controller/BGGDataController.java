@@ -136,8 +136,6 @@ public class BGGDataController {
         database.initializeDBConnection();
         
         game = database.readBGGGameData(bggID);
-        if (game == null)
-          return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
       } catch (DatabaseOperationException doe) {
         doe.printStackTrace();
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -150,6 +148,9 @@ public class BGGDataController {
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       }
       
+      if (game == null)
+        return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
+
       return game;
     }
   }  

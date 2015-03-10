@@ -117,8 +117,6 @@ public class MMDataController {
         database.initializeDBConnection();
         
         data = database.readMMPriceData(mmID);
-        if (data == null)
-          return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
       } catch (DatabaseOperationException doe) {
         doe.printStackTrace();
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -131,6 +129,9 @@ public class MMDataController {
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       }
       
+      if (data == null)
+        return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
+
       return data;
     }
   }  

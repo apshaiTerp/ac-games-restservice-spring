@@ -85,8 +85,12 @@ public class GameReltnControllerTest {
     reltn.setReltnID(1234L);
     reltn.setGameID(3456L);
     reltn.setBggID(155987L);
-    reltn.setCsiID(203495L);
-    reltn.setMmID(40693L);
+    List<Long> csiList = new ArrayList<Long>(1);
+    csiList.add(203495L);
+    reltn.setCsiIDs(csiList);
+    List<Long> mmList = new ArrayList<Long>(1);
+    mmList.add(40693L);
+    reltn.setMmIDs(mmList);
     
     List<String> asinKeys = new ArrayList<String>(1);
     asinKeys.add("B00KU10PH2");
@@ -119,12 +123,14 @@ public class GameReltnControllerTest {
         body("reltnID", equalTo(1234)).
         body("gameID", equalTo(3456)).
         body("bggID", equalTo(155987)).
-        body("csiID", equalTo(203495)).
-        body("mmID", equalTo(40693)).
+        body("csiIDs", hasItems(203495)).
+        body("mmIDs", hasItems(40693)).
         body("asinKeys", hasItems("B00KU10PH2"));
     
     System.out.println ("===  PUT Request from Altered Content through Service  ===");
-    reltn.setMmID(22222);
+    List<Long> newMMList = new ArrayList<Long>(1);
+    newMMList.add(22222L);
+    reltn.setMmIDs(newMMList);
     List<Long> otherSites = new ArrayList<Long>(1);
     otherSites.add(200701L);
     reltn.setOtherSites(otherSites);
@@ -150,7 +156,7 @@ public class GameReltnControllerTest {
       assertThat().
         statusCode(200).
         body("reltnID", equalTo(1234)).
-        body("mmID", equalTo(22222)).
+        body("mmIDs", hasItems(22222)).
         body("otherSites", hasItems(200701));
 
     System.out.println ("===  DELETE Request through Service  ===");

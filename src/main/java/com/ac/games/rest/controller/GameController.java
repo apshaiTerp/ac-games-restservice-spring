@@ -56,8 +56,6 @@ public class GameController {
         database.initializeDBConnection();
         
         game = database.readGame(gameID);
-        if (game == null)
-          return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
       } catch (DatabaseOperationException doe) {
         doe.printStackTrace();
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -70,6 +68,8 @@ public class GameController {
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       }
       
+      if (game == null)
+        return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
       return game;
     } else {
       //I'm not really prepared to handle this option at this time.
