@@ -17,7 +17,6 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.ac.games.data.BGGGame;
-import com.ac.games.data.BGGIDOnlyData;
 import com.ac.games.data.parser.BGGGameParser;
 import com.ac.games.db.GamesDatabase;
 import com.ac.games.db.MongoDBFactory;
@@ -162,13 +161,17 @@ public class BGGDataController {
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
-  @RequestMapping(method = RequestMethod.PUT)
-  public Object putBGGData(@RequestBody BGGGame game) {
+  @RequestMapping(method = RequestMethod.PUT, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
+  public Object putBGGData(@RequestParam(value="bggid") long bggID,
+                           @RequestBody BGGGame game) {
+    if (bggID <= 0)
+      return new SimpleErrorData("Game Data Error", "There was no valid BGGGame data provided");
     if (game == null)
       return new SimpleErrorData("Game Data Error", "There was no valid BGGGame data provided");
-    
     if (game.getBggID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
+    if (game.getBggID() != bggID)
+      return new SimpleErrorData("Game Data Invalid", "The provided game content does not match the bggID parameter");
     
     GamesDatabase database = null; 
     try {
@@ -198,7 +201,7 @@ public class BGGDataController {
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
-  @RequestMapping(method = RequestMethod.POST)
+  @RequestMapping(method = RequestMethod.POST, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
   public Object postBGGData(@RequestBody BGGGame game) {
     if (game == null)
       return new SimpleErrorData("Game Data Error", "There was no valid BGGGame data provided");
@@ -234,20 +237,17 @@ public class BGGDataController {
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
-  @RequestMapping(method = RequestMethod.DELETE)
-  public Object deleteBGGData(@RequestBody BGGIDOnlyData data) {
-    if (data == null)
-      return new SimpleErrorData("Game Data Error", "There was no valid BGGIDOnlyData data provided");
-    
-    if (data.getBggID() <= 0)
-      return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
+  @RequestMapping(method = RequestMethod.DELETE, produces="application/json;charset=UTF-8")
+  public Object deleteBGGData(@RequestParam(value="bggid") long bggID) {
+    if (bggID <= 0)
+      return new SimpleErrorData("Game Data Invalid", "The request has no Game ID");
     
     GamesDatabase database = null; 
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
       
-      database.deleteBGGGameData(data.getBggID());
+      database.deleteBGGGameData(bggID);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }

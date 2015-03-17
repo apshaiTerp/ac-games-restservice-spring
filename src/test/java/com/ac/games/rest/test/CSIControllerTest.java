@@ -13,7 +13,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.ac.games.data.CSIIDOnlyData;
 import com.ac.games.data.CoolStuffIncPriceData;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
@@ -130,6 +129,7 @@ public class CSIControllerTest {
     reqData.setCurPrice(9.95);
 
     given().
+      param("csiid", 203495L).
       contentType("application/json").
       body(reqData).
     when().
@@ -155,8 +155,7 @@ public class CSIControllerTest {
     
     System.out.println ("===  DELETE Request through Service  ===");
     given().
-      contentType("application/json").
-      body(new CSIIDOnlyData(reqData.getCsiID())).
+      param("csiid", 203495L).
     when().
       delete("/external/csidata").
     then().

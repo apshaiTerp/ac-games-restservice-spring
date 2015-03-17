@@ -18,7 +18,6 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.ac.games.data.GameReltn;
-import com.ac.games.data.GameReltnIDOnlyData;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.rest.Application;
@@ -136,6 +135,7 @@ public class GameReltnControllerTest {
     reltn.setOtherSites(otherSites);
     
     given().
+      param("gameid", 3456L).
       contentType("application/json").
       body(reltn).
     when().
@@ -161,8 +161,7 @@ public class GameReltnControllerTest {
 
     System.out.println ("===  DELETE Request through Service  ===");
     given().
-      contentType("application/json").
-      body(new GameReltnIDOnlyData(reltn.getReltnID())).
+      param("reltnid", reltn.getReltnID()).
     when().
       delete("/gamereltn").
     then().

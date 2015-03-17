@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ac.games.data.Game;
+import com.ac.games.data.CollectionItem;
 import com.ac.games.db.GamesDatabase;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
@@ -16,91 +16,79 @@ import com.ac.games.rest.message.SimpleErrorData;
 import com.ac.games.rest.message.SimpleMessageData;
 
 /**
- * This class should be the intercepter for REST service access to the core Game
- * information.
- * <p>
- * It should handle all request that come in under the /game entry.
- * <p>
- * Refer to the individual methods to determine the parameter lists.
- * 
  * @author ac010168
+ *
  */
 @RestController
-@RequestMapping("/game")
-public class GameController {
-  
+@RequestMapping("/collectionitem")
+public class CollectionItemController {
   /**
-   * GET method designed to handle retrieving {@link Game} data from the database.<p>
+   * GET method designed to handle retrieving {@link CollectionItem} data from the database.
    * This method supports the following parameters:
+   * 
    * <ul>
-   * <li><code>gameid=&lt;gameID&gt;</code> - The gameID.  This is required.</li>
-   * <li><code>batch=n</code> - This indicates whether to generate a batch on game requests including bggID and up
-   * to 'n' additional sequential elements.  Default is 1.</li></ul>
+   * <li><code>itemid=&lt;itemID&gt;</code></li>
+   * </ul>
    * 
-   * @param gameID The gameID that we are using to base this request on.
-   * @param batch The number of rows to retrieve in batch from the server.
+   * @param itemID
    * 
-   * @return A {@link Game} object or {@link SimpleErrorData} message reporting what failed.
+   * @return A {@link CollectionItem} object or {@link SimpleErrorData} message reporting what failed.
    */
   @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
-  public Object getGame(@RequestParam(value="gameid") long gameID,
-                        @RequestParam(value="batch", defaultValue="1") int batch) {
-    
-    GamesDatabase database = null; 
-    
-    if (batch == 1) {
-      Game game = new Game();
-      try {
-        database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
-        database.initializeDBConnection();
-        
-        game = database.readGame(gameID);
-      } catch (DatabaseOperationException doe) {
-        doe.printStackTrace();
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
-        return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
-      } catch (ConfigurationException ce) {
-        ce.printStackTrace();
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
-        return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
-      } finally {
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
-      }
+  public Object getCollectionItem(@RequestParam(value="itemid") long itemID) {
+    if (itemID <= 0)
+      return new SimpleErrorData("CollectionItem Data Error", "There was no valid collection request data provided");
       
-      if (game == null)
-        return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
-      return game;
-    } else {
-      //I'm not really prepared to handle this option at this time.
-      return new SimpleErrorData("Operation Error", "This operation is not yet supported");
+    GamesDatabase database = null; 
+    CollectionItem collection  = null;
+    try {
+      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database.initializeDBConnection();
+      
+      collection = database.readCollectionItem(itemID);
+    } catch (DatabaseOperationException doe) {
+      doe.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+    } catch (ConfigurationException ce) {
+      ce.printStackTrace();
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+    } finally {
+      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
+    
+    if (collection == null)
+      return new SimpleErrorData("Item Not Found", "The requested collection could not be found in the database.");
+    return collection;
   }
-
+  
   /**
-   * PUT Method, which should update (or potentially upsert) the provided game object.
+   * A simple PUT command to update the user.  This will update all fields for a collection, but
+   * the itemID cannot be changed.  This value must match the param itemID.
    * 
-   * @param game
+   * @param itemID The itemID we intend to update.  This is required
+   * @param collection   The collection data we want to update.  This is required.
    * 
-   * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
+   * @return a {@link SimpleMessageData} indicating the operation succeeded, or a {@link SimpleErrorData} 
+   * indicating it failed.
    */
   @RequestMapping(method = RequestMethod.PUT, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
-  public Object putGame(@RequestParam(value="gameid") long gameID,
-                        @RequestBody Game game) {
-    if (gameID <= 0)
-      return new SimpleErrorData("Game Data Error", "There was no valid Game data provided");
-    if (game == null)
-      return new SimpleErrorData("Game Data Error", "There was no valid Game data provided");
-    if (game.getGameID() < 0)
-      return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
-    if (game.getGameID() != gameID)
-      return new SimpleErrorData("Game Data Invalid", "The provided game content does not match the gameID parameter");
-      
+  public Object putCollectionItem(@RequestParam(value="itemid", defaultValue="-1") long itemID,
+                                  @RequestBody CollectionItem item) {
+    if (itemID <= 0)
+      return new SimpleErrorData("CollectionItem Data Error", "There was no valid CollectionItem request data provided");
+    if (item == null)
+      return new SimpleErrorData("CollectionItem Data Error", "There was no valid CollectionItem request data provided");
+    if (itemID != item.getItemID())
+      return new SimpleErrorData("CollectionItem Data Error", "The itemID parameter and itemID value of the RequestBody do not match");
+
     GamesDatabase database = null; 
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
       
-      database.updateGame(game);
+      database.updateCollectionItem(item);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -117,26 +105,27 @@ public class GameController {
   }
   
   /**
-   * POST Method, which should insert (or potentially upsert) the provided game object.
+   * A simple POST command to update the user.  This will insert a new collection.
    * 
-   * @param game
+   * @param collection   The collection data we want to insert.  This is required.
    * 
-   * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
+   * @return a {@link SimpleMessageData} indicating the operation succeeded, or a {@link SimpleErrorData} 
+   * indicating it failed.
    */
   @RequestMapping(method = RequestMethod.POST, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
-  public Object postGame(@RequestBody Game game) {
-    if (game == null)
-      return new SimpleErrorData("Game Data Error", "There was no valid Game data provided");
-    
+  public Object postCollectionItem(@RequestBody CollectionItem item) {
+    if (item == null)
+      return new SimpleErrorData("CollectionItem Data Error", "There was no valid CollectionItem request data provided");
+
     GamesDatabase database = null; 
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
-
-      if (game.getGameID() == -1)
-        game.setGameID(database.getMaxGameID() + 1);
       
-      database.insertGame(game);
+      if (item.getItemID() == -1)
+        item.setItemID(database.getMaxCollectionItemID() + 1);
+      
+      database.insertCollectionItem(item);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -153,23 +142,31 @@ public class GameController {
   }
   
   /**
-   * DELETE Method, which should delete the provided game reference, if it exists
+   * DELETE Method, which should delete the provided collection reference, if it exists
    * 
-   * @param data
+   * @param itemID
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
   @RequestMapping(method = RequestMethod.DELETE, produces="application/json;charset=UTF-8")
-  public Object deleteGame(@RequestParam(value="gameid") long gameID) {
-    if (gameID <= 0)
-      return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
-    
+  public Object deleteCollectionItem(@RequestParam(value="itemid", defaultValue="-1") long itemID) {
+    if (itemID <= 0)
+      return new SimpleErrorData("CollectionItem Data Error", "There was no valid CollectionItem request data provided");
+
     GamesDatabase database = null; 
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
       
-      database.deleteGame(gameID);
+      //First we need to see if this user exists.  If it does, reject the request.
+      CollectionItem existCollectionItem = database.readCollectionItem(itemID);
+      if (existCollectionItem == null) {
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        return new SimpleErrorData("No Such CollectionItem", "No CollectionItem with this ID Exists");
+      }
+      
+      database.deleteCollectionItem(itemID);
+      
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }

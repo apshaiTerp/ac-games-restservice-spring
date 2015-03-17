@@ -16,7 +16,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import com.ac.games.data.CSIIDOnlyData;
 import com.ac.games.data.CoolStuffIncPriceData;
 import com.ac.games.data.parser.CoolStuffIncParser;
 import com.ac.games.db.GamesDatabase;
@@ -146,13 +145,17 @@ public class CSIDataController {
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
-  @RequestMapping(method = RequestMethod.PUT)
-  public Object putCSIData(@RequestBody CoolStuffIncPriceData data) {
+  @RequestMapping(method = RequestMethod.PUT, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
+  public Object putCSIData(@RequestParam(value="csiid") long csiID, 
+                           @RequestBody CoolStuffIncPriceData data) {
+    if (csiID <= 0)
+      return new SimpleErrorData("Game Data Error", "There was no valid CSI data provided");
     if (data == null)
       return new SimpleErrorData("Game Data Error", "There was no valid CSI data provided");
-    
     if (data.getCsiID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
+    if (data.getCsiID() != csiID)
+      return new SimpleErrorData("Game Data Invalid", "The provided game content does not match the csiID parameter");
     
     GamesDatabase database = null; 
     try {
@@ -182,7 +185,7 @@ public class CSIDataController {
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
-  @RequestMapping(method = RequestMethod.POST)
+  @RequestMapping(method = RequestMethod.POST, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
   public Object postCSIData(@RequestBody CoolStuffIncPriceData data) {
     if (data == null)
       return new SimpleErrorData("Game Data Error", "There was no valid CSI data provided");
@@ -218,20 +221,17 @@ public class CSIDataController {
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
-  @RequestMapping(method = RequestMethod.DELETE)
-  public Object deleteCSIData(@RequestBody CSIIDOnlyData data) {
-    if (data == null)
-      return new SimpleErrorData("Game Data Error", "There was no valid CSI data provided");
-    
-    if (data.getCsiID() <= 0)
-      return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
+  @RequestMapping(method = RequestMethod.DELETE, produces="application/json;charset=UTF-8")
+  public Object deleteCSIData(@RequestParam(value="csiid") long csiID) {
+    if (csiID <= 0)
+      return new SimpleErrorData("Game Data Invalid", "The provided data has no CSI ID");
     
     GamesDatabase database = null; 
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
       
-      database.deleteCSIPriceData(data.getCsiID());
+      database.deleteCSIPriceData(csiID);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }

@@ -4,6 +4,10 @@ import static com.jayway.restassured.module.mockmvc.RestAssuredMockMvc.given;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,10 +19,15 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.ac.games.data.BGGGame;
+import com.ac.games.data.Collection;
+import com.ac.games.data.CollectionItem;
+import com.ac.games.data.Game;
+import com.ac.games.data.GameWeight;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.rest.Application;
 import com.ac.games.rest.controller.BGGDataController;
+import com.ac.games.rest.controller.CollectionController;
 import com.jayway.restassured.module.mockmvc.RestAssuredMockMvc;
 
 /**
@@ -28,7 +37,7 @@ import com.jayway.restassured.module.mockmvc.RestAssuredMockMvc;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("test-mvc-configuration.xml")
 @WebAppConfiguration
-public class BGGControllerTest {
+public class CollectionControllerTest {
 
   @Autowired
   private WebApplicationContext wac;
@@ -59,13 +68,11 @@ public class BGGControllerTest {
       e.printStackTrace();
     }
   }
-  
+
   /**
    * This should test all the basic functions of this service in the following order:
    * <ol>
-   * <li>GET Abyss from BGG XML API through GET service</li>
-   * <li>Validate that the Data looks correct</li>
-   * <li>GET Abyss object again and store it off</li>
+   * <li>Generate Mock Data</li>
    * <li>POST Abyss to database through service</li>
    * <li>GET Abyss from database and validate</li>
    * <li>Modify Abyss Values</li>
@@ -75,7 +82,7 @@ public class BGGControllerTest {
    * <li>GET Abyss and verify the Game Not Found message</li></ol>
    */
   @Test
-  public void testBGGGame() {
+  public void testGameController() {
     RestAssuredMockMvc.standaloneSetup(new BGGDataController());
     
     System.out.println ("===  Validation GET Request from BoardGameGeek through Service  ===");
@@ -98,14 +105,54 @@ public class BGGControllerTest {
     
     //Quick Version
     System.out.println ("===  GET for Use Request from BoardGameGeek through Service  ===");
-    BGGGame reqGame = given().param("bggid", 155987L).when().get("/external/bggdata").as(BGGGame.class);
+    BGGGame reqBGGGame = given().param("bggid", 155987L).when().get("/external/bggdata").as(BGGGame.class);
+    
+    Game reqGame = new Game();
+    reqGame.setGameID(1234L);
+    reqGame.setBggID(reqBGGGame.getBggID());
+    reqGame.setName(reqBGGGame.getName());
+    reqGame.setYearPublished(reqBGGGame.getYearPublished());
+    reqGame.setMinPlayers(reqBGGGame.getMinPlayers());
+    reqGame.setMaxPlayers(reqBGGGame.getMaxPlayers());
+    reqGame.setMinPlayingTime(reqBGGGame.getMinPlayingTime());
+    reqGame.setMaxPlayingTime(reqBGGGame.getMaxPlayingTime());
+    reqGame.setImageURL(reqBGGGame.getImageURL());
+    reqGame.setImageThumbnailURL(reqBGGGame.getImageThumbnailURL());
+    reqGame.setDescription(reqBGGGame.getDescription());
+    reqGame.setPrimaryPublisher("Asmodee");
+    reqGame.setPublishers(reqBGGGame.getPublishers());
+    reqGame.setDesigners(reqBGGGame.getDesigners());
+    reqGame.setCategories(reqBGGGame.getCategories());
+    reqGame.setMechanisms(reqBGGGame.getMechanisms());
+    reqGame.setExpansionIDs(reqBGGGame.getExpansionIDs());
+    reqGame.setParentGameID(reqBGGGame.getParentGameID());
+    reqGame.setGameType(reqBGGGame.getGameType());
+    reqGame.setAddDate(reqBGGGame.getAddDate());
+    
+    RestAssuredMockMvc.standaloneSetup(new CollectionController());
+    
+    System.out.println ("===  Generate Mock Data  ===");
+    CollectionItem item = new CollectionItem();
+    item.setItemID(7766L);
+    item.setGame(reqGame);
+    item.setGameID(reqGame.getGameID());
+    item.setDateAcquired(new Date(10000000));
+    item.setWhereAcquired("During a JUnit Test");
+    
+    List<GameWeight> weights = new ArrayList<GameWeight>(1);
+    weights.add(GameWeight.MEDIUM);
+    item.setWeights(weights);
+    
+    Collection collection = new Collection();
+    collection.setCollectionID(9999L);
+    collection.addGame(item);
     
     System.out.println ("===  POST Request from BoardGameGeek through Service  ===");
     given().
       contentType("application/json").
-      body(reqGame).
+      body(collection).
     when().
-      post("/external/bggdata").
+      post("/collection").
     then().
       assertThat().
         statusCode(200).
@@ -115,33 +162,28 @@ public class BGGControllerTest {
     System.out.println ("===  Validation GET Request from Previous POST through Service  ===");
     //Run our Select from BGG Master Data
     given().
-      param("bggid", 155987L).
-      param("source", "db").
+      param("collectionid", 9999L).
     when().
-      get("/external/bggdata").
+      get("/collection").
     then().
       assertThat().
         statusCode(200).
-        body("bggID", equalTo(155987)).
-        body("name", equalTo("Abyss")).
-        body("yearPublished", equalTo(2014)).
-        body("minPlayers", equalTo(2)).
-        body("maxPlayers", equalTo(4)).
-        body("minPlayingTime", equalTo(30)).
-        body("maxPlayingTime", equalTo(60)).
-        body("publishers", hasItems("Bombyx", "Asmodee", "Asterion Press", "REBEL.pl"));
+        body("collectionID", equalTo(9999)).
+        body("baseGameCount", equalTo(1)).
+        body("collectibleGameCount", equalTo(0)).
+        body("expansionGameCount", equalTo(0));
     
     System.out.println ("===  PUT Request from Altered Content through Service  ===");
-    reqGame.setBggRank(2);
-    //TMNT Movie Reference
-    reqGame.setBggRating(9.95);
+    collection.setCollectibleGameCount(5);
+    collection.setBaseGameCount(12);
+    collection.setExpansionGameCount(2);
     
     given().
-      param("bggid", reqGame.getBggID()).
+      param("collectionid", 9999L).
       contentType("application/json").
-      body(reqGame).
+      body(collection).
     when().
-      put("/external/bggdata").
+      put("/collection").
     then().
       assertThat().
         statusCode(200).
@@ -151,22 +193,21 @@ public class BGGControllerTest {
     System.out.println ("===  Validation GET Request from Previous PUT through Service  ===");
     //Run our Select from BGG Master Data
     given().
-      param("bggid", 155987L).
-      param("source", "db").
+      param("collectionid", 9999L).
     when().
-      get("/external/bggdata").
+      get("/collection").
     then().
       assertThat().
         statusCode(200).
-        body("bggID", equalTo(155987)).
-        body("bggRank", equalTo(2)).
-        body("bggRating", equalTo(9.95f));
-    
+        body("baseGameCount", equalTo(12)).
+        body("collectibleGameCount", equalTo(5)).
+        body("expansionGameCount", equalTo(2));
+
     System.out.println ("===  DELETE Request through Service  ===");
     given().
-      param("bggid", 155987L).
+      param("collectionid", 9999L).
     when().
-      delete("/external/bggdata").
+      delete("/collection").
     then().
       assertThat().
         statusCode(200).
@@ -175,36 +216,12 @@ public class BGGControllerTest {
     
     System.out.println ("===  GET Request from Database through Service that finds nothing  ===");
     given().
-      param("bggid", 155987L).
-      param("source", "db").
+      param("collectionid", 9999L).
     when().
-      get("/external/bggdata").
+      get("/collection").
     then().
       assertThat().
         statusCode(200).
-        body("errorType", equalTo("Game Not Found"));
-  }
-  
-  @Test
-  public void testBGGGameBatch() {
-    RestAssuredMockMvc.standaloneSetup(new BGGDataController());
-    
-    System.out.println ("===  Validation GET Request from BoardGameGeek through Service  ===");
-    //Run our Select from BGG Master Data
-    given().
-      param("bggid", 12001L).
-      param("batch", 3).
-    when().
-      get("/external/bggdata").
-    then().
-      assertThat().
-        statusCode(200).
-        body("size()", equalTo(3)).
-        body("[0].bggID", equalTo(12001)).
-        body("[0].name", equalTo("Lunker Lake")).
-        body("[1].bggID", equalTo(12002)).
-        body("[1].name", equalTo("Jambo")).
-        body("[2].bggID", equalTo(12003)).
-        body("[2].name", equalTo("Murder Mystery Party: When an Angel Dies"));
+        body("errorType", equalTo("Collection Not Found"));
   }
 }

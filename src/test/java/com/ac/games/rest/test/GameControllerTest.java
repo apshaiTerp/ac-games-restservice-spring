@@ -16,7 +16,6 @@ import org.springframework.web.context.WebApplicationContext;
 
 import com.ac.games.data.BGGGame;
 import com.ac.games.data.Game;
-import com.ac.games.data.GameIDOnlyData;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.rest.Application;
@@ -165,6 +164,7 @@ public class GameControllerTest {
     reqGame.setMaxPlayers(12);
     
     given().
+      param("gameid", 1234L).
       contentType("application/json").
       body(reqGame).
     when().
@@ -190,8 +190,7 @@ public class GameControllerTest {
     
     System.out.println ("===  DELETE Request through Service  ===");
     given().
-      contentType("application/json").
-      body(new GameIDOnlyData(reqGame.getGameID())).
+      param("gameid", 1234L).
     when().
       delete("/game").
     then().

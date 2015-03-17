@@ -16,7 +16,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import com.ac.games.data.MMIDOnlyData;
 import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.data.parser.MiniatureMarketParser;
 import com.ac.games.db.GamesDatabase;
@@ -61,7 +60,8 @@ public class MMDataController {
    * @return A {@link MiniatureMarketPriceData} object or {@link SimpleErrorData} message reporting the failure
    */
   @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
-  public Object getMMData(@RequestParam(value="mmid") long mmID, @RequestParam(value="source", defaultValue="mm") String source) {
+  public Object getMMData(@RequestParam(value="mmid") long mmID, 
+                          @RequestParam(value="source", defaultValue="mm") String source) {
     if ((!source.equalsIgnoreCase("mm")) && (!source.equalsIgnoreCase("db")))
       return new SimpleErrorData("Invalid Parameters", "The source parameter value of " + source + " is not a valid source value.");
   
@@ -143,13 +143,17 @@ public class MMDataController {
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
-  @RequestMapping(method = RequestMethod.PUT)
-  public Object putMMData(@RequestBody MiniatureMarketPriceData data) {
+  @RequestMapping(method = RequestMethod.PUT, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
+  public Object putMMData(@RequestParam(value="mmid") long mmID, 
+                          @RequestBody MiniatureMarketPriceData data) {
+    if (mmID <= 0)
+      return new SimpleErrorData("Game Data Error", "There was no valid MM data provided");
     if (data == null)
       return new SimpleErrorData("Game Data Error", "There was no valid MM data provided");
-    
     if (data.getMmID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no MM ID");
+    if (data.getMmID() != mmID)
+      return new SimpleErrorData("Game Data Invalid", "The provided game content does not match the mmID parameter");
     
     GamesDatabase database = null; 
     try {
@@ -179,7 +183,7 @@ public class MMDataController {
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
-  @RequestMapping(method = RequestMethod.POST)
+  @RequestMapping(method = RequestMethod.POST, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
   public Object postMMData(@RequestBody MiniatureMarketPriceData data) {
     if (data == null)
       return new SimpleErrorData("Game Data Error", "There was no valid MM data provided");
@@ -215,12 +219,9 @@ public class MMDataController {
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
-  @RequestMapping(method = RequestMethod.DELETE)
-  public Object deleteMMData(@RequestBody MMIDOnlyData data) {
-    if (data == null)
-      return new SimpleErrorData("Game Data Error", "There was no valid MM data provided");
-
-    if (data.getMmID() < 0)
+  @RequestMapping(method = RequestMethod.DELETE, produces="application/json;charset=UTF-8")
+  public Object deleteMMData(@RequestParam(value="mmid") long mmID) {
+    if (mmID <= 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no MM ID");
     
     GamesDatabase database = null; 
@@ -228,7 +229,7 @@ public class MMDataController {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
       
-      database.deleteMMPriceData(data.getMmID());
+      database.deleteMMPriceData(mmID);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }

@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ac.games.data.GameReltn;
-import com.ac.games.data.GameReltnIDOnlyData;
 import com.ac.games.db.GamesDatabase;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
@@ -43,6 +42,8 @@ public class GameReltnController {
    */
   @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
   public Object getGameReltn(@RequestParam(value="gameid") long gameID) {
+    if (gameID <= 0)
+      return new SimpleErrorData("User Data Error", "There was no valid game request data provided");
     
     GamesDatabase database = null; 
     
@@ -73,19 +74,24 @@ public class GameReltnController {
   /**
    * PUT Method, which should update (or potentially upsert) the provided game object.
    * 
+   * @param gameID
    * @param gameReltn
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
-  @RequestMapping(method = RequestMethod.PUT)
-  public Object putGameReltn(@RequestBody GameReltn gameReltn) {
+  @RequestMapping(method = RequestMethod.PUT, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
+  public Object putGameReltn(@RequestParam(value="gameid") long gameID,
+                             @RequestBody GameReltn gameReltn) {
+    if (gameID <= 0)
+      return new SimpleErrorData("Game Data Error", "There was no valid Game Relation data provided");
     if (gameReltn == null)
       return new SimpleErrorData("Game Data Error", "There was no valid Game Relation data provided");
-    
     if (gameReltn.getGameID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game relation has no Game ID");
     if (gameReltn.getReltnID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game relation has no Relation ID");
+    if (gameReltn.getGameID() != gameID)
+      return new SimpleErrorData("Game Data Invalid", "The provided game relation content does not match the gameID parameter");
     
     GamesDatabase database = null; 
     try {
@@ -115,20 +121,21 @@ public class GameReltnController {
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
-  @RequestMapping(method = RequestMethod.POST)
+  @RequestMapping(method = RequestMethod.POST, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
   public Object postGameReltn(@RequestBody GameReltn gameReltn) {
     if (gameReltn == null)
       return new SimpleErrorData("Game Data Error", "There was no valid Game Relation data provided");
     
     if (gameReltn.getGameID() < 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game relation has no Game ID");
-    if (gameReltn.getReltnID() < 0)
-      return new SimpleErrorData("Game Data Invalid", "The provided game relation has no Relation ID");
     
     GamesDatabase database = null; 
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
+      
+      if (gameReltn.getReltnID() == -1)
+        gameReltn.setReltnID(database.getMaxGameReltnID());
       
       database.insertGameReltn(gameReltn);
     } catch (DatabaseOperationException doe) {
@@ -149,16 +156,13 @@ public class GameReltnController {
   /**
    * DELETE Method, which should delete the provided game reference, if it exists
    * 
-   * @param data
+   * @param reltnID
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
-  @RequestMapping(method = RequestMethod.DELETE)
-  public Object deleteGameReltn(@RequestBody GameReltnIDOnlyData data) {
-    if (data == null)
-      return new SimpleErrorData("Game Data Error", "There was no valid GameReltnIDOnlyData data provided");
-    
-    if (data.getReltnID() <= 0)
+  @RequestMapping(method = RequestMethod.DELETE, produces="application/json;charset=UTF-8")
+  public Object deleteGameReltn(@RequestParam(value="reltnid") long reltnID) {
+    if (reltnID <= 0)
       return new SimpleErrorData("Game Data Invalid", "The provided game has no Game Relation ID");
     
     GamesDatabase database = null; 
@@ -166,7 +170,7 @@ public class GameReltnController {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
       
-      database.deleteGameReltn(data.getReltnID());
+      database.deleteGameReltn(reltnID);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
