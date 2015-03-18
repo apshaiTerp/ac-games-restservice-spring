@@ -5,7 +5,8 @@
     
     <groupId>com.ac.games</groupId>
     <artifactId>ac-games-restservice-spring</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.2.0-SNAPSHOT</version>
+    <packaging>war</packaging>
     
     <developers>
       <developer>
@@ -39,9 +40,9 @@
         <start-class>com.ac.games.rest.Application</start-class>
         
         <!--  Dependency Versions  -->
-        <games.pojo.version>0.1.0-SNAPSHOT</games.pojo.version>
-        <games.db.version>0.1.0-SNAPSHOT</games.db.version>
-        <games.db.mongo.version>0.1.0-SNAPSHOT</games.db.mongo.version>
+        <games.pojo.version>0.2.0-SNAPSHOT</games.pojo.version>
+        <games.db.version>0.2.0-SNAPSHOT</games.db.version>
+        <games.db.mongo.version>0.2.0-SNAPSHOT</games.db.mongo.version>
         <spring.test.mvc.version>1.0.0.M2</spring.test.mvc.version>
         <rest-assured.version>2.4.0</rest-assured.version>
         
@@ -71,6 +72,15 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <!-- <scope>provided</scope>  -->
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>

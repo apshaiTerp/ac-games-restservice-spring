@@ -2,6 +2,7 @@ package com.ac.games.rest.test;
 
 import static com.jayway.restassured.module.mockmvc.RestAssuredMockMvc.given;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.hasItems;
 
 import org.junit.After;
 import org.junit.Before;
@@ -13,11 +14,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.ac.games.data.MiniatureMarketPriceData;
+import com.ac.games.data.BGGGame;
+import com.ac.games.data.Game;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.rest.Application;
-import com.ac.games.rest.controller.MMDataController;
+import com.ac.games.rest.controller.BGGDataController;
+import com.ac.games.rest.controller.GameController;
 import com.jayway.restassured.module.mockmvc.RestAssuredMockMvc;
 
 /**
@@ -27,7 +30,7 @@ import com.jayway.restassured.module.mockmvc.RestAssuredMockMvc;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("test-mvc-configuration.xml")
 @WebAppConfiguration
-public class MMControllerTest {
+public class GameControllerTest {
 
   @Autowired
   private WebApplicationContext wac;
@@ -65,6 +68,7 @@ public class MMControllerTest {
    * <li>GET Abyss from BGG XML API through GET service</li>
    * <li>Validate that the Data looks correct</li>
    * <li>GET Abyss object again and store it off</li>
+   * <li>Convert Abyss BGGGame into Game Object</li>
    * <li>POST Abyss to database through service</li>
    * <li>GET Abyss from database and validate</li>
    * <li>Modify Abyss Values</li>
@@ -74,66 +78,97 @@ public class MMControllerTest {
    * <li>GET Abyss and verify the Game Not Found message</li></ol>
    */
   @Test
-  public void testMMData() {
-    RestAssuredMockMvc.standaloneSetup(new MMDataController());
+  public void testGameController() {
+    RestAssuredMockMvc.standaloneSetup(new BGGDataController());
     
-    System.out.println ("===  Validation GET Request from MiniatureMarket through Service  ===");
+    System.out.println ("===  Validation GET Request from BoardGameGeek through Service  ===");
     //Run our Select from BGG Master Data
     given().
-      param("mmid", 40693L).
+      param("bggid", 155987L).
     when().
-      get("/external/mmdata").
+      get("/external/bggdata").
     then().
       assertThat().
         statusCode(200).
-        body("mmID", equalTo(40693)).
-        body("title", equalTo("Abyss")).
-        body("sku", equalTo("ASMABY01US")).
-        body("msrpValue", equalTo(59.99f)).
-        body("curPrice", equalTo(41.39f));
-
+        body("bggID", equalTo(155987)).
+        body("name", equalTo("Abyss")).
+        body("yearPublished", equalTo(2014)).
+        body("minPlayers", equalTo(2)).
+        body("maxPlayers", equalTo(4)).
+        body("minPlayingTime", equalTo(30)).
+        body("maxPlayingTime", equalTo(60)).
+        body("publishers", hasItems("Bombyx", "Asmodee", "Asterion Press", "REBEL.pl"));
+    
     //Quick Version
-    System.out.println ("===  GET for Use Request from MiniatureMarket through Service  ===");
-    MiniatureMarketPriceData reqData = given().param("mmid", 40693L).when().get("/external/mmdata").as(MiniatureMarketPriceData.class);
-
+    System.out.println ("===  GET for Use Request from BoardGameGeek through Service  ===");
+    BGGGame reqBGGGame = given().param("bggid", 155987L).when().get("/external/bggdata").as(BGGGame.class);
+    
+    Game reqGame = new Game();
+    reqGame.setGameID(1234L);
+    reqGame.setBggID(reqBGGGame.getBggID());
+    reqGame.setName(reqBGGGame.getName());
+    reqGame.setYearPublished(reqBGGGame.getYearPublished());
+    reqGame.setMinPlayers(reqBGGGame.getMinPlayers());
+    reqGame.setMaxPlayers(reqBGGGame.getMaxPlayers());
+    reqGame.setMinPlayingTime(reqBGGGame.getMinPlayingTime());
+    reqGame.setMaxPlayingTime(reqBGGGame.getMaxPlayingTime());
+    reqGame.setImageURL(reqBGGGame.getImageURL());
+    reqGame.setImageThumbnailURL(reqBGGGame.getImageThumbnailURL());
+    reqGame.setDescription(reqBGGGame.getDescription());
+    reqGame.setPrimaryPublisher("Asmodee");
+    reqGame.setPublishers(reqBGGGame.getPublishers());
+    reqGame.setDesigners(reqBGGGame.getDesigners());
+    reqGame.setCategories(reqBGGGame.getCategories());
+    reqGame.setMechanisms(reqBGGGame.getMechanisms());
+    reqGame.setExpansionIDs(reqBGGGame.getExpansionIDs());
+    reqGame.setParentGameID(reqBGGGame.getParentGameID());
+    reqGame.setGameType(reqBGGGame.getGameType());
+    reqGame.setAddDate(reqBGGGame.getAddDate());
+    
+    RestAssuredMockMvc.standaloneSetup(new GameController());
+    
     System.out.println ("===  POST Request from BoardGameGeek through Service  ===");
     given().
       contentType("application/json").
-      body(reqData).
+      body(reqGame).
     when().
-      post("/external/mmdata").
+      post("/game").
     then().
       assertThat().
         statusCode(200).
         body("messageType", equalTo("Operation Successful")).
         body("message", equalTo("The Post Request Completed Successfully"));
-
+    
     System.out.println ("===  Validation GET Request from Previous POST through Service  ===");
+    //Run our Select from BGG Master Data
     given().
-      param("mmid", 40693L).
-      param("source", "db").
+      param("gameid", 1234L).
     when().
-      get("/external/mmdata").
+      get("/game").
     then().
       assertThat().
         statusCode(200).
-        body("mmID", equalTo(40693)).
-        body("title", equalTo("Abyss")).
-        body("sku", equalTo("ASMABY01US")).
-        body("msrpValue", equalTo(59.99f)).
-        body("curPrice", equalTo(41.39f));
-
+        body("gameID", equalTo(1234)).
+        body("bggID", equalTo(155987)).
+        body("name", equalTo("Abyss")).
+        body("yearPublished", equalTo(2014)).
+        body("minPlayers", equalTo(2)).
+        body("maxPlayers", equalTo(4)).
+        body("minPlayingTime", equalTo(30)).
+        body("maxPlayingTime", equalTo(60)).
+        body("primaryPublisher", equalTo("Asmodee")).
+        body("publishers", hasItems("Bombyx", "Asmodee", "Asterion Press", "REBEL.pl"));
+    
     System.out.println ("===  PUT Request from Altered Content through Service  ===");
-    reqData.setMsrpValue(100.99);
-    //TMNT Movie Reference
-    reqData.setCurPrice(9.95);
-
+    reqGame.setYearPublished(2016);
+    reqGame.setMaxPlayers(12);
+    
     given().
-      param("mmid", 40693L).
+      param("gameid", 1234L).
       contentType("application/json").
-      body(reqData).
+      body(reqGame).
     when().
-      put("/external/mmdata").
+      put("/game").
     then().
       assertThat().
         statusCode(200).
@@ -141,35 +176,34 @@ public class MMControllerTest {
         body("message", equalTo("The Put Request Completed Successfully"));
     
     System.out.println ("===  Validation GET Request from Previous PUT through Service  ===");
+    //Run our Select from BGG Master Data
     given().
-      param("mmid", 40693L).
-      param("source", "db").
+      param("gameid", 1234L).
     when().
-      get("/external/mmdata").
+      get("/game").
     then().
       assertThat().
         statusCode(200).
-        body("mmID", equalTo(40693)).
-        body("msrpValue", equalTo(100.99f)).
-        body("curPrice", equalTo(9.95f));
+        body("gameID", equalTo(1234)).
+        body("yearPublished", equalTo(2016)).
+        body("maxPlayers", equalTo(12));
     
     System.out.println ("===  DELETE Request through Service  ===");
     given().
-      param("mmid", 40693L).
+      param("gameid", 1234L).
     when().
-      delete("/external/mmdata").
+      delete("/game").
     then().
       assertThat().
         statusCode(200).
         body("messageType", equalTo("Operation Successful")).
         body("message", equalTo("The Delete Request Completed Successfully"));
-
+    
     System.out.println ("===  GET Request from Database through Service that finds nothing  ===");
     given().
-      param("mmid", 40693L).
-      param("source", "db").
+      param("gameid", 1234L).
     when().
-      get("/external/mmdata").
+      get("/game").
     then().
       assertThat().
         statusCode(200).

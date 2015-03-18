@@ -2,6 +2,10 @@ package com.ac.games.rest.test;
 
 import static com.jayway.restassured.module.mockmvc.RestAssuredMockMvc.given;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.hasItems;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -13,11 +17,11 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.ac.games.data.MiniatureMarketPriceData;
+import com.ac.games.data.GameReltn;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.rest.Application;
-import com.ac.games.rest.controller.MMDataController;
+import com.ac.games.rest.controller.GameReltnController;
 import com.jayway.restassured.module.mockmvc.RestAssuredMockMvc;
 
 /**
@@ -27,7 +31,7 @@ import com.jayway.restassured.module.mockmvc.RestAssuredMockMvc;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("test-mvc-configuration.xml")
 @WebAppConfiguration
-public class MMControllerTest {
+public class GameReltnControllerTest {
 
   @Autowired
   private WebApplicationContext wac;
@@ -58,13 +62,11 @@ public class MMControllerTest {
       e.printStackTrace();
     }
   }
-  
+
   /**
    * This should test all the basic functions of this service in the following order:
    * <ol>
-   * <li>GET Abyss from BGG XML API through GET service</li>
-   * <li>Validate that the Data looks correct</li>
-   * <li>GET Abyss object again and store it off</li>
+   * <li>Generate Mock Data</li>
    * <li>POST Abyss to database through service</li>
    * <li>GET Abyss from database and validate</li>
    * <li>Modify Abyss Values</li>
@@ -74,66 +76,70 @@ public class MMControllerTest {
    * <li>GET Abyss and verify the Game Not Found message</li></ol>
    */
   @Test
-  public void testMMData() {
-    RestAssuredMockMvc.standaloneSetup(new MMDataController());
+  public void testGameController() {
+    RestAssuredMockMvc.standaloneSetup(new GameReltnController());
     
-    System.out.println ("===  Validation GET Request from MiniatureMarket through Service  ===");
-    //Run our Select from BGG Master Data
-    given().
-      param("mmid", 40693L).
-    when().
-      get("/external/mmdata").
-    then().
-      assertThat().
-        statusCode(200).
-        body("mmID", equalTo(40693)).
-        body("title", equalTo("Abyss")).
-        body("sku", equalTo("ASMABY01US")).
-        body("msrpValue", equalTo(59.99f)).
-        body("curPrice", equalTo(41.39f));
-
-    //Quick Version
-    System.out.println ("===  GET for Use Request from MiniatureMarket through Service  ===");
-    MiniatureMarketPriceData reqData = given().param("mmid", 40693L).when().get("/external/mmdata").as(MiniatureMarketPriceData.class);
-
+    System.out.println ("===  Generate Mock Data  ===");
+    GameReltn reltn = new GameReltn();
+    reltn.setReltnID(1234L);
+    reltn.setGameID(3456L);
+    reltn.setBggID(155987L);
+    List<Long> csiList = new ArrayList<Long>(1);
+    csiList.add(203495L);
+    reltn.setCsiIDs(csiList);
+    List<Long> mmList = new ArrayList<Long>(1);
+    mmList.add(40693L);
+    reltn.setMmIDs(mmList);
+    
+    List<String> asinKeys = new ArrayList<String>(1);
+    asinKeys.add("B00KU10PH2");
+    reltn.setAsinKeys(asinKeys);
+    
+    //No other site data for this item
+    reltn.setOtherSites(null);
+    
     System.out.println ("===  POST Request from BoardGameGeek through Service  ===");
     given().
       contentType("application/json").
-      body(reqData).
+      body(reltn).
     when().
-      post("/external/mmdata").
+      post("/gamereltn").
     then().
       assertThat().
         statusCode(200).
         body("messageType", equalTo("Operation Successful")).
         body("message", equalTo("The Post Request Completed Successfully"));
-
+    
     System.out.println ("===  Validation GET Request from Previous POST through Service  ===");
+    //Run our Select from BGG Master Data
     given().
-      param("mmid", 40693L).
-      param("source", "db").
+      param("gameid", 3456L).
     when().
-      get("/external/mmdata").
+      get("/gamereltn").
     then().
       assertThat().
         statusCode(200).
-        body("mmID", equalTo(40693)).
-        body("title", equalTo("Abyss")).
-        body("sku", equalTo("ASMABY01US")).
-        body("msrpValue", equalTo(59.99f)).
-        body("curPrice", equalTo(41.39f));
-
+        body("reltnID", equalTo(1234)).
+        body("gameID", equalTo(3456)).
+        body("bggID", equalTo(155987)).
+        body("csiIDs", hasItems(203495)).
+        body("mmIDs", hasItems(40693)).
+        body("asinKeys", hasItems("B00KU10PH2"));
+    
     System.out.println ("===  PUT Request from Altered Content through Service  ===");
-    reqData.setMsrpValue(100.99);
-    //TMNT Movie Reference
-    reqData.setCurPrice(9.95);
-
+    List<Long> newMMList = new ArrayList<Long>(1);
+    newMMList.add(22222L);
+    reltn.setMmIDs(newMMList);
+    List<Long> otherSites = new ArrayList<Long>(1);
+    otherSites.add(200701L);
+    reltn.setOtherSites(otherSites);
+    
     given().
-      param("mmid", 40693L).
+      param("gameid", 3456L).
       contentType("application/json").
-      body(reqData).
+      body(reltn).
     when().
-      put("/external/mmdata").
+      put("/gamereltn").
     then().
       assertThat().
         statusCode(200).
@@ -141,35 +147,34 @@ public class MMControllerTest {
         body("message", equalTo("The Put Request Completed Successfully"));
     
     System.out.println ("===  Validation GET Request from Previous PUT through Service  ===");
+    //Run our Select from BGG Master Data
     given().
-      param("mmid", 40693L).
-      param("source", "db").
+      param("gameid", 3456L).
     when().
-      get("/external/mmdata").
+      get("/gamereltn").
     then().
       assertThat().
         statusCode(200).
-        body("mmID", equalTo(40693)).
-        body("msrpValue", equalTo(100.99f)).
-        body("curPrice", equalTo(9.95f));
-    
+        body("reltnID", equalTo(1234)).
+        body("mmIDs", hasItems(22222)).
+        body("otherSites", hasItems(200701));
+
     System.out.println ("===  DELETE Request through Service  ===");
     given().
-      param("mmid", 40693L).
+      param("reltnid", reltn.getReltnID()).
     when().
-      delete("/external/mmdata").
+      delete("/gamereltn").
     then().
       assertThat().
         statusCode(200).
         body("messageType", equalTo("Operation Successful")).
         body("message", equalTo("The Delete Request Completed Successfully"));
-
+    
     System.out.println ("===  GET Request from Database through Service that finds nothing  ===");
     given().
-      param("mmid", 40693L).
-      param("source", "db").
+      param("gameid", 3456L).
     when().
-      get("/external/mmdata").
+      get("/gamereltn").
     then().
       assertThat().
         statusCode(200).

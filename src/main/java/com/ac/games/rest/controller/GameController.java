@@ -1,124 +1,60 @@
 package com.ac.games.rest.controller;
 
-import java.util.Arrays;
-
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestTemplate;
 
-import com.ac.games.data.CoolStuffIncPriceData;
-import com.ac.games.data.parser.CoolStuffIncParser;
+import com.ac.games.data.Game;
 import com.ac.games.db.GamesDatabase;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
-import com.ac.games.exception.GameNotFoundException;
 import com.ac.games.rest.Application;
 import com.ac.games.rest.message.SimpleErrorData;
 import com.ac.games.rest.message.SimpleMessageData;
 
 /**
- * This class should be the intercepter for REST service access to the CoolStuffInc game
+ * This class should be the intercepter for REST service access to the core Game
  * information.
  * <p>
- * It should handle all request that come in under the /external/csidata entry.
+ * It should handle all request that come in under the /game entry.
  * <p>
  * Refer to the individual methods to determine the parameter lists.
  * 
  * @author ac010168
  */
 @RestController
-@RequestMapping("/external/csidata")
-public class CSIDataController {
-
-  /** The standard URI template by which games can be accessed by csiid */
-  public final static String URL_TEMPLATE = "http://www.coolstuffinc.com/p/<csiid>";
-  /** The replacement marker in the URL_TEMPLATE */
-  public final static String CSIID_MARKER = "<csiid>";
+@RequestMapping("/game")
+public class GameController {
   
   /**
-   * GET method designed to handle retrieving the CoolStuffInc content from the
-   * coolstuffinc website and return the formatted {@link CoolStuffIncPriceData} object.
-   * <p>
+   * GET method designed to handle retrieving {@link Game} data from the database.<p>
    * This method supports the following parameters:
    * <ul>
-   * <li><code>csiid=&lt;gameid&gt;</code> - The gameID.  This is required.</li>
-   * <li><code>source=&lt;csi|db&gt;</code> - This indicated whether to request the game from BoardGameGeek (bgg)
-   * or from our cached database (db).  Default is csi.</li></ul>
+   * <li><code>gameid=&lt;gameID&gt;</code> - The gameID.  This is required.</li>
+   * <li><code>batch=n</code> - This indicates whether to generate a batch on game requests including bggID and up
+   * to 'n' additional sequential elements.  Default is 1.</li></ul>
    * 
-   * @param csiID
-   * @return A {@link CoolStuffIncPriceData} object or {@link SimpleErrorData} message reporting the failure
+   * @param gameID The gameID that we are using to base this request on.
+   * @param batch The number of rows to retrieve in batch from the server.
+   * 
+   * @return A {@link Game} object or {@link SimpleErrorData} message reporting what failed.
    */
   @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
-  public Object getCSIData(@RequestParam(value="csiid") long csiID, @RequestParam(value="source", defaultValue="csi") String source) {
-    if ((!source.equalsIgnoreCase("csi")) && (!source.equalsIgnoreCase("db")))
-      return new SimpleErrorData("Invalid Parameters", "The source parameter value of " + source + " is not a valid source value.");
+  public Object getGame(@RequestParam(value="gameid") long gameID,
+                        @RequestParam(value="batch", defaultValue="1") int batch) {
     
-    //DEBUG
-    System.out.println ("Processing csi request for csiid " + csiID + "...");
+    GamesDatabase database = null; 
     
-    if (source.equalsIgnoreCase("csi")) {
-      //Create the RestTemplate to access the external HTML page
-      RestTemplate restTemplate = new RestTemplate();
-      HttpHeaders headers = new HttpHeaders();
-      headers.setAccept(Arrays.asList(MediaType.TEXT_HTML));
-      HttpEntity<String> entity = new HttpEntity<String>("parameters", headers);
-      
-      CoolStuffIncPriceData data = null;
-      try {
-        //Run the GET command to retrieve the HTML Body
-        ResponseEntity<String> gameResponse = restTemplate.exchange(URL_TEMPLATE.replace(CSIID_MARKER, "" + csiID), 
-            HttpMethod.GET, entity, String.class);
-
-        String htmlText = gameResponse.getBody();
-        data = CoolStuffIncParser.parseCSIHTML(htmlText, csiID);
-      } catch (HttpServerErrorException hsee) {
-        if (hsee.getMessage().contains("503 Service Unavailable")) {
-          System.out.println ("The CSI server is icing me out again...");
-          return new SimpleErrorData("Server Timeout 503", "The CSI server has stopped answering my requests");
-        } else {
-          System.out.println ("Something probably wrong happened here...");
-          hsee.printStackTrace();
-          return new SimpleErrorData("Operation Error", "An error has occurred: " + hsee.getMessage());
-        }
-      } catch (HttpClientErrorException hcee) {
-        if (hcee.getMessage().contains("404 Not Found")) {
-          System.out.println ("I could not find this game.");
-          return new SimpleErrorData("Game Not Found", "The requested csiid of " + csiID + " could not be found.");
-        } else {
-          System.out.println ("Something probably wrong happened here...");
-          hcee.printStackTrace();
-          return new SimpleErrorData("Operation Error", "An error has occurred: " + hcee.getMessage());
-        }
-      } catch (GameNotFoundException gnfe) {
-        System.out.println ("I could not find this game.");
-        return new SimpleErrorData("Game Not Found", "The requested csiid of " + csiID + " could not be found.");
-      } catch (Throwable t) {
-        System.out.println ("Something terribly wrong happened here...");
-        t.printStackTrace();
-        return new SimpleErrorData("Operation Error", "An error has occurred: " + t.getMessage());
-      }
-
-      return data;
-    } else {
-      GamesDatabase database = null; 
-      CoolStuffIncPriceData data = null;
-      
+    if (batch == 1) {
+      Game game = new Game();
       try {
         database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
         database.initializeDBConnection();
         
-        data = database.readCSIPriceData(csiID);
+        game = database.readGame(gameID);
       } catch (DatabaseOperationException doe) {
         doe.printStackTrace();
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -131,38 +67,40 @@ public class CSIDataController {
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       }
       
-      if (data == null)
+      if (game == null)
         return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
-      
-      return data;
+      return game;
+    } else {
+      //I'm not really prepared to handle this option at this time.
+      return new SimpleErrorData("Operation Error", "This operation is not yet supported");
     }
   }
 
   /**
-   * PUT Method, which should update (or potentially upsert) the provided data object.
+   * PUT Method, which should update (or potentially upsert) the provided game object.
    * 
-   * @param data
+   * @param game
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
   @RequestMapping(method = RequestMethod.PUT, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
-  public Object putCSIData(@RequestParam(value="csiid") long csiID, 
-                           @RequestBody CoolStuffIncPriceData data) {
-    if (csiID <= 0)
-      return new SimpleErrorData("Game Data Error", "There was no valid CSI data provided");
-    if (data == null)
-      return new SimpleErrorData("Game Data Error", "There was no valid CSI data provided");
-    if (data.getCsiID() < 0)
-      return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
-    if (data.getCsiID() != csiID)
-      return new SimpleErrorData("Game Data Invalid", "The provided game content does not match the csiID parameter");
-    
+  public Object putGame(@RequestParam(value="gameid") long gameID,
+                        @RequestBody Game game) {
+    if (gameID <= 0)
+      return new SimpleErrorData("Game Data Error", "There was no valid Game data provided");
+    if (game == null)
+      return new SimpleErrorData("Game Data Error", "There was no valid Game data provided");
+    if (game.getGameID() < 0)
+      return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
+    if (game.getGameID() != gameID)
+      return new SimpleErrorData("Game Data Invalid", "The provided game content does not match the gameID parameter");
+      
     GamesDatabase database = null; 
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
       
-      database.updateCSIPriceData(data);
+      database.updateGame(game);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -181,24 +119,24 @@ public class CSIDataController {
   /**
    * POST Method, which should insert (or potentially upsert) the provided game object.
    * 
-   * @param data
+   * @param game
    * 
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
   @RequestMapping(method = RequestMethod.POST, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
-  public Object postCSIData(@RequestBody CoolStuffIncPriceData data) {
-    if (data == null)
-      return new SimpleErrorData("Game Data Error", "There was no valid CSI data provided");
-    
-    if (data.getCsiID() < 0)
-      return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
+  public Object postGame(@RequestBody Game game) {
+    if (game == null)
+      return new SimpleErrorData("Game Data Error", "There was no valid Game data provided");
     
     GamesDatabase database = null; 
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
+
+      if (game.getGameID() == -1)
+        game.setGameID(database.getMaxGameID() + 1);
       
-      database.insertCSIPriceData(data);
+      database.insertGame(game);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -213,7 +151,7 @@ public class CSIDataController {
     
     return new SimpleMessageData("Operation Successful", "The Post Request Completed Successfully");
   }
-
+  
   /**
    * DELETE Method, which should delete the provided game reference, if it exists
    * 
@@ -222,16 +160,16 @@ public class CSIDataController {
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
   @RequestMapping(method = RequestMethod.DELETE, produces="application/json;charset=UTF-8")
-  public Object deleteCSIData(@RequestParam(value="csiid") long csiID) {
-    if (csiID <= 0)
-      return new SimpleErrorData("Game Data Invalid", "The provided data has no CSI ID");
+  public Object deleteGame(@RequestParam(value="gameid") long gameID) {
+    if (gameID <= 0)
+      return new SimpleErrorData("Game Data Invalid", "The provided game has no Game ID");
     
     GamesDatabase database = null; 
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
       
-      database.deleteCSIPriceData(csiID);
+      database.deleteGame(gameID);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
