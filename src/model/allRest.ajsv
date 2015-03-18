@@ -1,13 +1,27 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!--AgileJ Ltd. (http://www.agilej.com)-->
 <ajsv>
-    <diagram creationDate="2015-Feb-25 03:04" filterScript="" licenseGrade="single" licenseeName="Adam_Carter" licenseeOrganization="Personal" version="1.7.17.v20140508-2136">
-        <class className="com.ac.games.rest.test.BGGControllerTest" project="ac-games-restservice-spring" xLocation="232" yLocation="301"/>
-        <class className="com.ac.games.rest.test.CSIControllerTest" project="ac-games-restservice-spring" xLocation="662" yLocation="303"/>
-        <class className="com.ac.games.rest.test.MMControllerTest" project="ac-games-restservice-spring" xLocation="1050" yLocation="296"/>
-        <class className="com.ac.games.rest.Application" project="ac-games-restservice-spring" xLocation="660" yLocation="-94"/>
-        <class className="com.ac.games.rest.controller.BGGDataController" project="ac-games-restservice-spring" xLocation="185" yLocation="34"/>
-        <class className="com.ac.games.rest.controller.CSIDataController" project="ac-games-restservice-spring" xLocation="620" yLocation="32"/>
-        <class className="com.ac.games.rest.controller.MMDataController" project="ac-games-restservice-spring" xLocation="997" yLocation="33"/>
+    <diagram creationDate="2015-Mar-18 02:51" filterScript="" licenseGrade="single" licenseeName="Adam_Carter" licenseeOrganization="Personal" version="1.7.17.v20140508-2136">
+        <class className="com.ac.games.rest.test.BGGControllerTest" project="ac-games-restservice-spring" xLocation="565" yLocation="964"/>
+        <class className="com.ac.games.rest.test.CollectionControllerTest" project="ac-games-restservice-spring" xLocation="1218" yLocation="386"/>
+        <class className="com.ac.games.rest.test.CollectionItemControllerTest" project="ac-games-restservice-spring" xLocation="1095" yLocation="685"/>
+        <class className="com.ac.games.rest.test.CSIControllerTest" project="ac-games-restservice-spring" xLocation="2279" yLocation="1321"/>
+        <class className="com.ac.games.rest.test.GameControllerTest" project="ac-games-restservice-spring" xLocation="1142" yLocation="100"/>
+        <class className="com.ac.games.rest.test.GameReltnControllerTest" project="ac-games-restservice-spring" xLocation="2074" yLocation="664"/>
+        <class className="com.ac.games.rest.test.MMControllerTest" project="ac-games-restservice-spring" xLocation="610" yLocation="1265"/>
+        <class className="com.ac.games.rest.test.UserControllerTest" project="ac-games-restservice-spring" xLocation="1744" yLocation="1245"/>
+        <class className="com.ac.games.rest.Application" project="ac-games-restservice-spring" xLocation="1007" yLocation="965"/>
+        <class className="com.ac.games.rest.controller.BGGDataController" project="ac-games-restservice-spring" xLocation="563" yLocation="640"/>
+        <class className="com.ac.games.rest.controller.CollectionController" project="ac-games-restservice-spring" xLocation="1200" yLocation="1311"/>
+        <class className="com.ac.games.rest.controller.CollectionItemController" project="ac-games-restservice-spring" xLocation="1629" yLocation="955"/>
+        <class className="com.ac.games.rest.controller.CSIDataController" project="ac-games-restservice-spring" xLocation="1708" yLocation="323"/>
+        <class className="com.ac.games.rest.controller.GameController" project="ac-games-restservice-spring" xLocation="100" yLocation="922"/>
+        <class className="com.ac.games.rest.controller.GameReltnController" project="ac-games-restservice-spring" xLocation="1533" yLocation="675"/>
+        <class className="com.ac.games.rest.controller.LoginController" project="ac-games-restservice-spring" xLocation="1739" yLocation="1528"/>
+        <class className="com.ac.games.rest.controller.MMDataController" project="ac-games-restservice-spring" xLocation="558" yLocation="314"/>
+        <class className="com.ac.games.rest.controller.UserController" project="ac-games-restservice-spring" xLocation="2155" yLocation="965"/>
+        <class className="com.ac.games.rest.data.LoginData" project="ac-games-restservice-spring" xLocation="2684" yLocation="1316"/>
+        <class className="com.ac.games.rest.data.NewUserData" project="ac-games-restservice-spring" xLocation="2630" yLocation="751"/>
+        <class className="com.ac.games.rest.filter.SimpleCORSFilter" project="ac-games-restservice-spring" xLocation="946" yLocation="1596"/>
     </diagram>
 </ajsv>
