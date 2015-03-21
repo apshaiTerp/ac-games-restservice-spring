@@ -5,6 +5,7 @@ import java.util.Arrays;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,6 +17,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import com.ac.games.data.MiniatureMarketCategory;
 import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.data.parser.MiniatureMarketParser;
 import com.ac.games.db.GamesDatabase;
@@ -80,6 +82,92 @@ public class MMDataController {
 
         String htmlText = gameResponse.getBody();
         data = MiniatureMarketParser.parseMMHTML(htmlText);
+        
+        //if we got data, we need to start looking for our content type, which we desperately need to make sorting easier
+        //To do this, we're going to blindly hammer away at seeding the type breadcrumbs till we find it or run out
+        //of breadcrumbs
+        if ((data != null) && (data.getSku() != null)) {
+          String htmlRoot = "http://www.miniaturemarket.com";
+          //Always check if set, then process the next category
+          if (data.getCategory() == MiniatureMarketCategory.UNKNOWN) {
+            try {
+              gameResponse = restTemplate.exchange(htmlRoot + MiniatureMarketPriceData.TABLE_TOP_MINIS_CATEGORY + data.getSku().toLowerCase() + ".html", 
+                  HttpMethod.GET, entity, String.class);
+              if (gameResponse.getStatusCode() == HttpStatus.OK)
+                data.setCategory(MiniatureMarketCategory.TABLETOP);
+            } catch (Throwable t2) {}
+          }
+
+          //Always check if set, then process the next category
+          if (data.getCategory() == MiniatureMarketCategory.UNKNOWN) {
+            try {
+              gameResponse = restTemplate.exchange(htmlRoot + MiniatureMarketPriceData.COLLECTIBLE_MINIS_CATEGORY + data.getSku().toLowerCase() + ".html", 
+                  HttpMethod.GET, entity, String.class);
+              if (gameResponse.getStatusCode() == HttpStatus.OK)
+                data.setCategory(MiniatureMarketCategory.COLLECTIBLES);
+            } catch (Throwable t2) {}
+          }
+
+          //Always check if set, then process the next category
+          if (data.getCategory() == MiniatureMarketCategory.UNKNOWN) {
+            try {
+              gameResponse = restTemplate.exchange(htmlRoot + MiniatureMarketPriceData.LCGS_CATEGORY + data.getSku().toLowerCase() + ".html", 
+                  HttpMethod.GET, entity, String.class);
+              if (gameResponse.getStatusCode() == HttpStatus.OK)
+                data.setCategory(MiniatureMarketCategory.LCGS);
+            } catch (Throwable t2) {}
+          }
+
+          //Always check if set, then process the next category
+          if (data.getCategory() == MiniatureMarketCategory.UNKNOWN) {
+            try {
+              gameResponse = restTemplate.exchange(htmlRoot + MiniatureMarketPriceData.BOARD_GAMES_CATEGORY + data.getSku().toLowerCase() + ".html", 
+                  HttpMethod.GET, entity, String.class);
+              if (gameResponse.getStatusCode() == HttpStatus.OK)
+                data.setCategory(MiniatureMarketCategory.BOARDGAMES);
+            } catch (Throwable t2) {}
+          }
+
+          //Always check if set, then process the next category
+          if (data.getCategory() == MiniatureMarketCategory.UNKNOWN) {
+            try {
+              gameResponse = restTemplate.exchange(htmlRoot + MiniatureMarketPriceData.SUPPLIES_CATEGORY + data.getSku().toLowerCase() + ".html", 
+                  HttpMethod.GET, entity, String.class);
+              if (gameResponse.getStatusCode() == HttpStatus.OK)
+                data.setCategory(MiniatureMarketCategory.ACCESSORIES);
+            } catch (Throwable t2) {}
+          }
+
+          //Always check if set, then process the next category
+          if (data.getCategory() == MiniatureMarketCategory.UNKNOWN) {
+            try {
+              gameResponse = restTemplate.exchange(htmlRoot + MiniatureMarketPriceData.CCGS_CATEGORY + data.getSku().toLowerCase() + ".html", 
+                  HttpMethod.GET, entity, String.class);
+              if (gameResponse.getStatusCode() == HttpStatus.OK)
+                data.setCategory(MiniatureMarketCategory.CCGS);
+            } catch (Throwable t2) {}
+          }
+
+          //Always check if set, then process the next category
+          if (data.getCategory() == MiniatureMarketCategory.UNKNOWN) {
+            try {
+              gameResponse = restTemplate.exchange(htmlRoot + MiniatureMarketPriceData.RPGS_CATEGORY + data.getSku().toLowerCase() + ".html", 
+                  HttpMethod.GET, entity, String.class);
+              if (gameResponse.getStatusCode() == HttpStatus.OK)
+                data.setCategory(MiniatureMarketCategory.RPGS);
+            } catch (Throwable t2) {}
+          }
+
+          //Always check if set, then process the next category
+          if (data.getCategory() == MiniatureMarketCategory.UNKNOWN) {
+            try {
+              gameResponse = restTemplate.exchange(htmlRoot + MiniatureMarketPriceData.ACCESSORIES_CATEGORY + data.getSku().toLowerCase() + ".html", 
+                  HttpMethod.GET, entity, String.class);
+              if (gameResponse.getStatusCode() == HttpStatus.OK)
+                data.setCategory(MiniatureMarketCategory.ACCESSORIES);
+            } catch (Throwable t2) {}
+          }
+        }
       } catch (GameNotFoundException gnfe) {
         System.out.println ("I could not find this game.");
         return new SimpleErrorData("Game Not Found", "The requested csiid of " + mmID + " could not be found.");
