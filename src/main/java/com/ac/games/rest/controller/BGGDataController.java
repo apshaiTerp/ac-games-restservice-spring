@@ -135,7 +135,7 @@ public class BGGDataController {
         return new SimpleErrorData("Operation Error", "An error has occurred: " + t.getMessage());
       }
 
-      if (source.equalsIgnoreCase("db"))
+      if (source.equalsIgnoreCase("bgg"))
         return gameResult;
       else {
         if (batch == 1) bggSources.add((BGGGame)gameResult);
