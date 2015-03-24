@@ -60,14 +60,21 @@ public class CSIDataController {
    * @return A {@link CoolStuffIncPriceData} object or {@link SimpleErrorData} message reporting the failure
    */
   @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
-  public Object getCSIData(@RequestParam(value="csiid") long csiID, @RequestParam(value="source", defaultValue="csi") String source) {
-    if ((!source.equalsIgnoreCase("csi")) && (!source.equalsIgnoreCase("db")))
+  public Object getCSIData(@RequestParam(value="csiid") long csiID, 
+                           @RequestParam(value="source", defaultValue="csi") String source,
+                           @RequestParam(value="sync", defaultValue="n") String sync) {
+    if ((!source.equalsIgnoreCase("csi")) && (!source.equalsIgnoreCase("db")) && (!source.equalsIgnoreCase("hybrid")))
       return new SimpleErrorData("Invalid Parameters", "The source parameter value of " + source + " is not a valid source value.");
+    if ((!sync.equalsIgnoreCase("n")) && (!sync.equalsIgnoreCase("y")))
+      return new SimpleErrorData("Invalid Parameters", "The sync parameter value of " + sync + " is not a valid sync value");
     
     //DEBUG
     System.out.println ("Processing csi request for csiid " + csiID + "...");
     
-    if (source.equalsIgnoreCase("csi")) {
+    CoolStuffIncPriceData csiSource = null;
+    CoolStuffIncPriceData dbSource  = null;
+    
+    if ((source.equalsIgnoreCase("csi")) || (source.equalsIgnoreCase("hybrid"))) {
       //Create the RestTemplate to access the external HTML page
       RestTemplate restTemplate = new RestTemplate();
       HttpHeaders headers = new HttpHeaders();
@@ -109,8 +116,11 @@ public class CSIDataController {
         return new SimpleErrorData("Operation Error", "An error has occurred: " + t.getMessage());
       }
 
-      return data;
-    } else {
+      if (source.equalsIgnoreCase("csi"))
+        return data;
+      else csiSource = data;
+    } 
+    if ((source.equalsIgnoreCase("db")) || (source.equalsIgnoreCase("hybrid"))) {
       GamesDatabase database = null; 
       CoolStuffIncPriceData data = null;
       
@@ -134,8 +144,57 @@ public class CSIDataController {
       if (data == null)
         return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
       
-      return data;
+      if (source.equalsIgnoreCase("db"))
+        return data;
+      else dbSource = data;
     }
+    
+    //If we made it this far, we're in hybrid mode, so we need to do our comparisons.
+    //We need to keep all the Review States, and other fields that we made decisions about
+    //otherwise prioritize new fields from BGG
+    //Note, we need to check for nulls on any field that may have nulls.
+    if (!dbSource.getTitle().equalsIgnoreCase(csiSource.getTitle())) dbSource.setTitle(csiSource.getTitle());
+    if (dbSource.getAvailability() != csiSource.getAvailability())   dbSource.setAvailability(csiSource.getAvailability());
+    if (dbSource.getMsrpValue() != csiSource.getMsrpValue())         dbSource.setMsrpValue(csiSource.getMsrpValue());
+    if (dbSource.getCurPrice() != csiSource.getCurPrice())           dbSource.setCurPrice(csiSource.getCurPrice());
+    
+    if (dbSource.getImageURL() == null) dbSource.setImageURL(csiSource.getImageURL());
+    else if (csiSource.getImageURL() != null) {
+      if (dbSource.getImageURL().equalsIgnoreCase(csiSource.getImageURL()))                 
+        dbSource.setImageURL(csiSource.getImageURL());
+    }
+    if (dbSource.getReleaseDate() == null) dbSource.setReleaseDate(csiSource.getReleaseDate());
+    else if (csiSource.getReleaseDate() != null) {
+      if (dbSource.getReleaseDate().equalsIgnoreCase(csiSource.getReleaseDate()))                 
+        dbSource.setReleaseDate(csiSource.getReleaseDate());
+    }
+    if (dbSource.getPublisher() == null) dbSource.setPublisher(csiSource.getPublisher());
+    else if (csiSource.getPublisher() != null) {
+      if (dbSource.getPublisher().equalsIgnoreCase(csiSource.getPublisher()))                 
+        dbSource.setPublisher(csiSource.getPublisher());
+    }
+
+    if (sync.equalsIgnoreCase("y")) {
+      GamesDatabase database = null; 
+      try {
+        database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+        database.initializeDBConnection();
+        
+        database.updateCSIPriceData(dbSource);
+      } catch (DatabaseOperationException doe) {
+        doe.printStackTrace();
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+      } catch (ConfigurationException ce) {
+        ce.printStackTrace();
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+      } finally {
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      }
+    }
+    return dbSource;
+
   }
 
   /**

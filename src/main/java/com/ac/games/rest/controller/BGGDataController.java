@@ -1,6 +1,9 @@
 package com.ac.games.rest.controller;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -53,7 +56,7 @@ public class BGGDataController {
    * This method supports the following parameters:
    * <ul>
    * <li><code>bggid=&lt;gameid&gt;</code> - The gameID.  This is required.</li>
-   * <li><code>source=&lt;bgg|db&gt;</code> - This indicated whether to request the game from BoardGameGeek (bgg)
+   * <li><code>source=&lt;bgg|db|hybrid&gt;</code> - This indicated whether to request the game from BoardGameGeek (bgg)
    * or from our cached database (db).  Default is bgg.</li>
    * <li><code>batch=n</code> - This indicates whether to generate a batch on game requests including bggID and up
    * to 'n' additional sequential elements.  Default is 1.</li></ul>
@@ -61,20 +64,27 @@ public class BGGDataController {
    * @param bggID The bggID that we are using to base this request on.
    * @param source The source, either bgg or db we are requesting data from
    * @param batch The number of rows to retrieve in batch from the server
+   * @param sync  A flag indicating whether we should automatically post an update if we determine that newly read content
+   * has changed.  This simplifies front-end workflow.
    * 
    * @return A {@link BGGGame} object or {@link SimpleErrorData} message reporting the failure
    */
+  @SuppressWarnings("unchecked")
   @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
   public Object getBGGData(@RequestParam(value="bggid") long bggID, 
                            @RequestParam(value="source", defaultValue="bgg") String source,
-                           @RequestParam(value="batch", defaultValue="1") int batch) {
+                           @RequestParam(value="batch", defaultValue="1") int batch,
+                           @RequestParam(value="sync", defaultValue="n") String sync) {
     
-    if ((!source.equalsIgnoreCase("bgg")) && (!source.equalsIgnoreCase("db")))
+    if ((!source.equalsIgnoreCase("bgg")) && (!source.equalsIgnoreCase("db")) && (!source.equalsIgnoreCase("hybrid")))
       return new SimpleErrorData("Invalid Parameters", "The source parameter value of " + source + " is not a valid source value.");
-    if ((source.equalsIgnoreCase("db")) && (batch > 1))
-      return new SimpleErrorData("Invalid Parameters", "Batching is not currently supported for database source requests.");
+    if ((!sync.equalsIgnoreCase("n")) && (!sync.equalsIgnoreCase("y")))
+      return new SimpleErrorData("Invalid Parameters", "The sync parameter value of " + sync + " is not a valid sync value");
     
-    if (source.equalsIgnoreCase("bgg")) {
+    List<BGGGame> bggSources = new LinkedList<BGGGame>();
+    List<BGGGame> dbSources  = new LinkedList<BGGGame>();
+    
+    if (source.equalsIgnoreCase("bgg") || source.equalsIgnoreCase("hybrid")) {
       //Create the RestTemplate to access the external XML API
       RestTemplate restTemplate = new RestTemplate();
       HttpHeaders headers = new HttpHeaders();
@@ -125,16 +135,31 @@ public class BGGDataController {
         return new SimpleErrorData("Operation Error", "An error has occurred: " + t.getMessage());
       }
 
-      return gameResult;
-    } else {
+      if (source.equalsIgnoreCase("db"))
+        return gameResult;
+      else {
+        if (batch == 1) bggSources.add((BGGGame)gameResult);
+        else            bggSources = (List<BGGGame>)gameResult;
+      }
+    } 
+    if (source.equalsIgnoreCase("db") || source.equalsIgnoreCase("hybrid")) {
       GamesDatabase database = null; 
-      BGGGame game = null;
+      BGGGame singleGame     = null;
+      List<BGGGame> allGames = new LinkedList<BGGGame>();
       
       try {
         database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
         database.initializeDBConnection();
         
-        game = database.readBGGGameData(bggID);
+        if (batch == 1)
+          singleGame = database.readBGGGameData(bggID);
+        else {
+          for (long i = bggID; i < (bggID + batch); i++) {
+            singleGame = database.readBGGGameData(i);
+            if (singleGame != null) 
+              allGames.add(singleGame);
+          }
+        }
       } catch (DatabaseOperationException doe) {
         doe.printStackTrace();
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -147,11 +172,123 @@ public class BGGDataController {
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       }
       
-      if (game == null)
-        return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
-
-      return game;
+      if (batch == 1) {
+        if (singleGame == null)
+          return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
+  
+        if (source.equalsIgnoreCase("db"))
+          return singleGame;
+        else dbSources.add(singleGame);
+      } else {
+        if (allGames.size() == 0)
+          return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
+        
+        if (source.equalsIgnoreCase("db"))
+          return allGames;
+        else dbSources = allGames;
+      }
     }
+    
+    //If we made it this far, we're in hybrid mode, so we need to do our comparisons.
+    //We need to keep all the Review States, and other fields that we made decisions about
+    //otherwise prioritize new fields from BGG
+    //Note, we need to check for nulls on any field that may have nulls.
+    List<BGGGame> finalList = new ArrayList<BGGGame>(dbSources.size());
+    for (BGGGame dbSource : dbSources) {
+      BGGGame bggSource = null;
+      for (BGGGame searchSource : bggSources) {
+        if (searchSource.getBggID() == dbSource.getBggID()) {
+          bggSource = searchSource;
+          break;
+        }
+      }
+      //If we didn't find a matching BGG item (for whatever reason, BGG can be flaky sometimes)
+      if (bggSource == null)
+        finalList.add(bggSource);
+      else {
+        if (!dbSource.getName().equalsIgnoreCase(bggSource.getName()))     dbSource.setName(bggSource.getName());
+        if (dbSource.getYearPublished() != bggSource.getYearPublished())   dbSource.setYearPublished(bggSource.getYearPublished());
+        if (dbSource.getMinPlayers() != bggSource.getMinPlayers())         dbSource.setMinPlayers(bggSource.getMinPlayers());
+        if (dbSource.getMaxPlayers() != bggSource.getMaxPlayers())         dbSource.setMaxPlayers(bggSource.getMaxPlayers());
+        if (dbSource.getMinPlayingTime() != bggSource.getMinPlayingTime()) dbSource.setMinPlayingTime(bggSource.getMinPlayingTime());
+        if (dbSource.getMaxPlayingTime() != bggSource.getMaxPlayingTime()) dbSource.setMaxPlayingTime(bggSource.getMaxPlayingTime());
+        
+        if (dbSource.getBggRating() != bggSource.getBggRating())           dbSource.setBggRating(bggSource.getBggRating());
+        if (dbSource.getBggRatingUsers() != bggSource.getBggRatingUsers()) dbSource.setBggRatingUsers(bggSource.getBggRatingUsers());
+        if (dbSource.getBggRank() != bggSource.getBggRank())               dbSource.setBggRank(bggSource.getBggRank());
+
+        if (dbSource.getParentGameID() != bggSource.getParentGameID())     dbSource.setParentGameID(bggSource.getParentGameID());
+        if (dbSource.getGameType() != bggSource.getGameType())             dbSource.setGameType(bggSource.getGameType());
+
+        if (dbSource.getImageURL() == null) dbSource.setImageURL(bggSource.getImageURL());
+        else if (bggSource.getImageURL() != null) {
+          if (dbSource.getImageURL().equalsIgnoreCase(bggSource.getImageURL()))                 
+            dbSource.setImageURL(bggSource.getImageURL());
+        }
+        if (dbSource.getImageThumbnailURL() == null) dbSource.setImageThumbnailURL(bggSource.getImageThumbnailURL());
+        else if (bggSource.getImageThumbnailURL() != null) {
+          if (dbSource.getImageThumbnailURL().equalsIgnoreCase(bggSource.getImageThumbnailURL()))                 
+            dbSource.setImageThumbnailURL(bggSource.getImageThumbnailURL());
+        }
+        if (dbSource.getDescription() == null) dbSource.setDescription(bggSource.getDescription());
+        else if (bggSource.getDescription() != null) {
+          if (dbSource.getDescription().equalsIgnoreCase(bggSource.getDescription()))                 
+            dbSource.setDescription(bggSource.getDescription());
+        }
+
+        if (dbSource.getPublishers() == null) dbSource.setPublishers(bggSource.getPublishers());
+        else if (bggSource.getPublishers() != null) {
+          if (dbSource.getPublishers().size() != bggSource.getPublishers().size())                 
+            dbSource.setPublishers(bggSource.getPublishers());
+        }
+        if (dbSource.getDesigners() == null) dbSource.setDesigners(bggSource.getDesigners());
+        else if (bggSource.getDesigners() != null) {
+          if (dbSource.getDesigners().size() != bggSource.getDesigners().size())                 
+            dbSource.setDesigners(bggSource.getDesigners());
+        }
+        if (dbSource.getCategories() == null) dbSource.setCategories(bggSource.getCategories());
+        else if (bggSource.getCategories() != null) {
+          if (dbSource.getCategories().size() != bggSource.getCategories().size())                 
+            dbSource.setCategories(bggSource.getCategories());
+        }
+        if (dbSource.getMechanisms() == null) dbSource.setMechanisms(bggSource.getMechanisms());
+        else if (bggSource.getMechanisms() != null) {
+          if (dbSource.getMechanisms().size() != bggSource.getMechanisms().size())                 
+            dbSource.setMechanisms(bggSource.getMechanisms());
+        }
+        if (dbSource.getExpansionIDs() == null) dbSource.setExpansionIDs(bggSource.getExpansionIDs());
+        else if (bggSource.getExpansionIDs() != null) {
+          if (dbSource.getExpansionIDs().size() != bggSource.getExpansionIDs().size())                 
+            dbSource.setExpansionIDs(bggSource.getExpansionIDs());
+        }
+        
+        finalList.add(dbSource);
+      }
+    }
+    
+    if (sync.equalsIgnoreCase("y")) {
+      GamesDatabase database = null; 
+      try {
+        database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+        database.initializeDBConnection();
+        
+        for (BGGGame curGame : finalList)
+          database.updateBGGGameData(curGame);
+      } catch (DatabaseOperationException doe) {
+        doe.printStackTrace();
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+      } catch (ConfigurationException ce) {
+        ce.printStackTrace();
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+      } finally {
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      }
+    }
+    
+    if (batch == 1) return finalList.get(0);
+    else            return finalList;
   }  
 
   /**
