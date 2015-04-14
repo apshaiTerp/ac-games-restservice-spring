@@ -19,7 +19,7 @@ import com.ac.games.rest.message.SimpleMessageData;
  * This class should be the intercepter for REST service access to the core Game
  * information.
  * <p>
- * It should handle all request that come in under the /game entry.
+ * It should handle all request that come in under the /gamereltn entry.
  * <p>
  * Refer to the individual methods to determine the parameter lists.
  * 

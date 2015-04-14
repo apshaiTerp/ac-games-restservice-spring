@@ -1,6 +1,9 @@
 package com.ac.games.rest.controller;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -17,6 +20,8 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.ac.games.data.CoolStuffIncPriceData;
+import com.ac.games.data.GameReltn;
+import com.ac.games.data.ReviewState;
 import com.ac.games.data.parser.CoolStuffIncParser;
 import com.ac.games.db.GamesDatabase;
 import com.ac.games.db.MongoDBFactory;
@@ -60,14 +65,67 @@ public class CSIDataController {
    * @return A {@link CoolStuffIncPriceData} object or {@link SimpleErrorData} message reporting the failure
    */
   @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
-  public Object getCSIData(@RequestParam(value="csiid") long csiID, @RequestParam(value="source", defaultValue="csi") String source) {
-    if ((!source.equalsIgnoreCase("csi")) && (!source.equalsIgnoreCase("db")))
+  public Object getCSIData(@RequestParam(value="csiid", defaultValue="-1") long csiID, 
+                           @RequestParam(value="source", defaultValue="csi") String source,
+                           @RequestParam(value="sync", defaultValue="n") String sync,
+                           @RequestParam(value="review", defaultValue="null") String review) {
+    if ((!source.equalsIgnoreCase("csi")) && (!source.equalsIgnoreCase("db")) && (!source.equalsIgnoreCase("hybrid")))
       return new SimpleErrorData("Invalid Parameters", "The source parameter value of " + source + " is not a valid source value.");
-    
+    if ((!sync.equalsIgnoreCase("n")) && (!sync.equalsIgnoreCase("y")))
+      return new SimpleErrorData("Invalid Parameters", "The sync parameter value of " + sync + " is not a valid sync value");
+    if ((!review.equalsIgnoreCase("new")) && (!review.equalsIgnoreCase("old")) && (!review.equalsIgnoreCase("null")))
+      return new SimpleErrorData("Invalid Parameters", "The review parameter value of " + review + " is not a valid review value");
+
+    if ((csiID == -1) && (review.equalsIgnoreCase("null")))
+      return new SimpleErrorData("Invalid Parameters", "No CSI ID was provided for this request.");
     //DEBUG
     System.out.println ("Processing csi request for csiid " + csiID + "...");
     
-    if (source.equalsIgnoreCase("csi")) {
+    CoolStuffIncPriceData csiSource = null;
+    CoolStuffIncPriceData dbSource  = null;
+    
+    if ((source.equalsIgnoreCase("db")) || (source.equalsIgnoreCase("hybrid"))) {
+      GamesDatabase database = null; 
+      CoolStuffIncPriceData data = null;
+      
+      try {
+        database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+        database.initializeDBConnection();
+        
+        if (!review.equalsIgnoreCase("null"))
+          data = database.readCSIDataForReview(review);
+        else data = database.readCSIPriceData(csiID);
+        
+        //DEBUG
+        //if (data == null) System.out.println ("I didn't find anything...");
+        //else              System.out.println ("I found game: " + data.getTitle());
+        
+        
+      } catch (DatabaseOperationException doe) {
+        doe.printStackTrace();
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
+      } catch (ConfigurationException ce) {
+        ce.printStackTrace();
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
+      } finally {
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      }
+      
+      if (data == null)
+        return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
+      
+      if (source.equalsIgnoreCase("db"))
+        return data;
+      else dbSource = data;
+    }
+    if ((source.equalsIgnoreCase("csi")) || (source.equalsIgnoreCase("hybrid"))) {
+      if (source.equalsIgnoreCase("hybrid") && (csiID == -1))
+        csiID = dbSource.getCsiID();
+      
+      //System.out.println ("Preparing to process csiID through remote call: " + csiID);
+      
       //Create the RestTemplate to access the external HTML page
       RestTemplate restTemplate = new RestTemplate();
       HttpHeaders headers = new HttpHeaders();
@@ -109,16 +167,43 @@ public class CSIDataController {
         return new SimpleErrorData("Operation Error", "An error has occurred: " + t.getMessage());
       }
 
-      return data;
-    } else {
+      if (source.equalsIgnoreCase("csi"))
+        return data;
+      else csiSource = data;
+    } 
+    
+    //If we made it this far, we're in hybrid mode, so we need to do our comparisons.
+    //We need to keep all the Review States, and other fields that we made decisions about
+    //otherwise prioritize new fields from BGG
+    //Note, we need to check for nulls on any field that may have nulls.
+    if (!dbSource.getTitle().equalsIgnoreCase(csiSource.getTitle())) dbSource.setTitle(csiSource.getTitle());
+    if (dbSource.getAvailability() != csiSource.getAvailability())   dbSource.setAvailability(csiSource.getAvailability());
+    if (dbSource.getMsrpValue() != csiSource.getMsrpValue())         dbSource.setMsrpValue(csiSource.getMsrpValue());
+    if (dbSource.getCurPrice() != csiSource.getCurPrice())           dbSource.setCurPrice(csiSource.getCurPrice());
+    
+    if (dbSource.getImageURL() == null) dbSource.setImageURL(csiSource.getImageURL());
+    else if (csiSource.getImageURL() != null) {
+      if (dbSource.getImageURL().equalsIgnoreCase(csiSource.getImageURL()))                 
+        dbSource.setImageURL(csiSource.getImageURL());
+    }
+    if (dbSource.getReleaseDate() == null) dbSource.setReleaseDate(csiSource.getReleaseDate());
+    else if (csiSource.getReleaseDate() != null) {
+      if (dbSource.getReleaseDate().equalsIgnoreCase(csiSource.getReleaseDate()))                 
+        dbSource.setReleaseDate(csiSource.getReleaseDate());
+    }
+    if (dbSource.getPublisher() == null) dbSource.setPublisher(csiSource.getPublisher());
+    else if (csiSource.getPublisher() != null) {
+      if (dbSource.getPublisher().equalsIgnoreCase(csiSource.getPublisher()))                 
+        dbSource.setPublisher(csiSource.getPublisher());
+    }
+
+    if (sync.equalsIgnoreCase("y")) {
       GamesDatabase database = null; 
-      CoolStuffIncPriceData data = null;
-      
       try {
         database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
         database.initializeDBConnection();
         
-        data = database.readCSIPriceData(csiID);
+        database.updateCSIPriceData(dbSource);
       } catch (DatabaseOperationException doe) {
         doe.printStackTrace();
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -130,12 +215,9 @@ public class CSIDataController {
       } finally {
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       }
-      
-      if (data == null)
-        return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
-      
-      return data;
     }
+    return dbSource;
+
   }
 
   /**
@@ -147,6 +229,8 @@ public class CSIDataController {
    */
   @RequestMapping(method = RequestMethod.PUT, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
   public Object putCSIData(@RequestParam(value="csiid") long csiID, 
+                           @RequestParam(value="review", defaultValue="null") String review,
+                           @RequestParam(value="gameid", defaultValue="-1") long gameID,
                            @RequestBody CoolStuffIncPriceData data) {
     if (csiID <= 0)
       return new SimpleErrorData("Game Data Error", "There was no valid CSI data provided");
@@ -156,13 +240,87 @@ public class CSIDataController {
       return new SimpleErrorData("Game Data Invalid", "The provided game has no CSI ID");
     if (data.getCsiID() != csiID)
       return new SimpleErrorData("Game Data Invalid", "The provided game content does not match the csiID parameter");
+
+    if ((!review.equalsIgnoreCase("approve")) && (!review.equalsIgnoreCase("reject")) && 
+        (!review.equalsIgnoreCase("reset")) && (!review.equalsIgnoreCase("null")))
+      return new SimpleErrorData("Invalid Parameters", "The review parameter value of " + review + " is not a valid review value");
+
+    ReviewState newState = null;
+    if (review.equalsIgnoreCase("approve")) newState = ReviewState.REVIEWED;
+    if (review.equalsIgnoreCase("reject"))  newState = ReviewState.REJECTED;
+    if (review.equalsIgnoreCase("reset"))   newState = ReviewState.PENDING;
     
+    if ((newState == ReviewState.REVIEWED) && (gameID == -1))
+      return new SimpleErrorData("Invalid Parameters", "This game cannot be reviewed without a gameID provided");
+
     GamesDatabase database = null; 
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
       
-      database.updateCSIPriceData(data);
+      if (newState == null)
+        database.updateCSIPriceData(data);
+      else {
+        //We now need to find out if the state is changing
+        CoolStuffIncPriceData prevData = database.readCSIPriceData(csiID);
+        if (prevData.getReviewState() == newState)
+          database.updateCSIPriceData(data);
+        else {
+          //The state of the game is changing, so we need to flex what we do based on the new state
+          if (newState == ReviewState.REVIEWED) {
+            //We know the previous state was not reviewed, so we need to link this game
+            //to the GameReltn entry
+            GameReltn reltn = database.readGameReltn(gameID);
+            if (reltn == null)
+              return new SimpleErrorData("No Game Relation Found", "Unable to link this CSI entry to a GameReltn");
+            
+            List<Long> csiIDs = reltn.getCsiIDs();
+            if (csiIDs == null)
+              csiIDs = new ArrayList<Long>();
+            csiIDs.add(csiID);
+            reltn.setCsiIDs(csiIDs);
+            
+            data.setReviewState(newState);
+            data.setReviewDate(new Date());
+            
+            database.updateCSIPriceData(data);
+            database.updateGameReltn(reltn);
+          } else if ((newState == ReviewState.REJECTED) || (newState == ReviewState.PENDING)) {
+            //This is only complicated if the game was previously approved
+            if (prevData.getReviewState() == ReviewState.REVIEWED) {
+              //All we really need to do in this case is remove the CSI ID from the List of CSI IDs
+              GameReltn reltn = database.readGameReltn(gameID);
+              if (reltn == null)
+                return new SimpleErrorData("No Game Relation Found", "Unable to link this CSI entry to a GameReltn");
+              
+              List<Long> csiIDs = reltn.getCsiIDs();
+              if (csiIDs != null) {
+                for (int i = 0; i < csiIDs.size(); i++) {
+                  long curValue = csiIDs.get(i);
+                  if (curValue == csiID) {
+                    csiIDs.remove(i);
+                    break;
+                  }
+                }
+              } else csiIDs = new ArrayList<Long>();
+              reltn.setCsiIDs(csiIDs);
+              
+              data.setReviewState(newState);
+              data.setReviewDate(new Date());
+              
+              database.updateCSIPriceData(data);
+              database.updateGameReltn(reltn);
+            } else {
+              //Just adjust the actual record.
+              data.setReviewState(newState);
+              data.setReviewDate(new Date());
+              
+              database.updateCSIPriceData(data);
+            }
+          }
+          
+        }//end else the reviewState changed
+      }//end else we have a good state
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }

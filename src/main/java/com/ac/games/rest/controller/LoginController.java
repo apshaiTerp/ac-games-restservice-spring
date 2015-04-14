@@ -16,6 +16,7 @@ import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.rest.Application;
 import com.ac.games.rest.data.LoginData;
+import com.ac.games.rest.data.LoginSuccessData;
 import com.ac.games.rest.data.NewUserData;
 import com.ac.games.rest.message.SimpleErrorData;
 import com.ac.games.rest.message.SimpleMessageData;
@@ -38,6 +39,8 @@ public class LoginController {
       return new SimpleErrorData("Login Error", "There was no login password provided");
 
     GamesDatabase database = null; 
+    LoginSuccessData successData = new LoginSuccessData();
+    
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
@@ -63,6 +66,14 @@ public class LoginController {
         return new SimpleErrorData("Login Error", "The provided password does not match.");
       }
       
+      successData.setUserID(user.getUserID());
+      successData.setUserFirstName(user.getFirstName());
+      switch (userDetail.getUserRole()) {
+        case USER  : successData.setUserRole("User"); break;
+        case ADMIN : successData.setUserRole("Admin"); break;
+        default    : successData.setUserRole("None");
+      }
+      
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -75,7 +86,7 @@ public class LoginController {
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
-    return new SimpleMessageData("Login Successful", "The Login Validated Successfully");
+    return successData;
   }
   
   @RequestMapping(method = RequestMethod.PUT, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
