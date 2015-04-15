@@ -59,7 +59,7 @@ public class AutocompleteController {
         String primaryPub = null;
         int yearPublished = -1;
         
-        int openParen = value.indexOf("(");
+        int openParen = value.lastIndexOf("(");
         if (openParen == -1)
           gameName = value.trim();
         else {
