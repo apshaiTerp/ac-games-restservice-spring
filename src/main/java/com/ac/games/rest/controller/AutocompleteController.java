@@ -41,7 +41,7 @@ public class AutocompleteController {
     if (value == null)
       return new SimpleErrorData("Invalid Parameters", "The value parameter was not provided");
 
-    if ((!source.equalsIgnoreCase("game")))
+    if ((!source.equalsIgnoreCase("game")) && (!source.equalsIgnoreCase("bgg")) && (!source.equalsIgnoreCase("csi")) && (!source.equalsIgnoreCase("mm")))
       return new SimpleErrorData("Invalid Parameters", "The source parameter value of " + source + " is not a valid source value.");
     
     GamesDatabase database = null; 
