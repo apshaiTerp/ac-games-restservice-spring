@@ -7,7 +7,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ac.games.data.BGGGame;
 import com.ac.games.data.CompactSearchData;
+import com.ac.games.data.CoolStuffIncPriceData;
+import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.db.GamesDatabase;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
@@ -51,45 +54,126 @@ public class AutocompleteController {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
       
-      if (value.equalsIgnoreCase("full"))
-        results = new WrapList(database.readGameNamesForAutoComplete());
-      else {
-        System.out.println ("The value I'm going to deconstruct is: " + value);
-        String gameName   = null;
-        String primaryPub = null;
-        int yearPublished = -1;
+      if (value.equalsIgnoreCase("full")) {
+        if (source.equalsIgnoreCase("game"))
+          results = new WrapList(database.readGameNamesForAutoComplete());
+        else if (source.equalsIgnoreCase("bgg"))
+          results = new WrapList(database.readBGGGameNamesForAutoComplete());
+        else if (source.equalsIgnoreCase("csi"))
+          results = new WrapList(database.readCSITitlesForAutoComplete());
+        else if (source.equalsIgnoreCase("mm"))
+          results = new WrapList(database.readMMTitlesForAutoComplete());
         
-        int openParen = value.lastIndexOf("(");
-        if (openParen == -1)
-          gameName = value.trim();
-        else {
-          gameName = value.substring(0, openParen - 1).trim();
-          String filterSubString = value.substring(openParen + 1, value.length() - 1);
-          int splitPos = filterSubString.indexOf(" - ");
-          if (splitPos != -1) {
-            //It has a publisher and a date
-            primaryPub = filterSubString.substring(0, splitPos).trim();
-            yearPublished = Integer.parseInt(filterSubString.substring(splitPos+3).trim());
-          } else {
-            //It is a publisher OR a date
-            try {
-              yearPublished = Integer.parseInt(filterSubString);
-            } catch (NumberFormatException nfe) {
-              primaryPub = filterSubString;
+      } else {
+        System.out.println ("The value I'm going to deconstruct is: " + value);
+        
+        if (source.equalsIgnoreCase("game")) {
+          //The value format should be "gameName (<optional publisher> - <optional year published>)
+          String gameName   = null;
+          String primaryPub = null;
+          int yearPublished = -1;
+          
+          int openParen = value.lastIndexOf("(");
+          if (openParen == -1)
+            gameName = value.trim();
+          else {
+            gameName = value.substring(0, openParen - 1).trim();
+            String filterSubString = value.substring(openParen + 1, value.length() - 1);
+            int splitPos = filterSubString.indexOf(" - ");
+            if (splitPos != -1) {
+              //It has a publisher and a date
+              primaryPub = filterSubString.substring(0, splitPos).trim();
+              yearPublished = Integer.parseInt(filterSubString.substring(splitPos+3).trim());
+            } else {
+              //It is a publisher OR a date
+              try {
+                yearPublished = Integer.parseInt(filterSubString);
+              } catch (NumberFormatException nfe) {
+                primaryPub = filterSubString;
+              }
             }
           }
+          
+          System.out.println ("Game Name:     " + gameName);
+          System.out.println ("Primary Pub:   " + primaryPub);
+          System.out.println ("yearPublished: " + yearPublished);
+          
+          CompactSearchData data = database.readGameFromAutoName(gameName, primaryPub, yearPublished);
+          
+          if (data == null)
+            results =  new SimpleErrorData("No Game Found", "I could not find the requested game.");
+          else 
+            results = data;
+        } else if (source.equalsIgnoreCase("bgg")) {
+          //The value format should be "gameName (bggID - <optional year published>)
+          long bggID = -1;
+          int openParen = value.lastIndexOf("(");
+          
+          String filterSubString = value.substring(openParen + 1, value.length() - 1);
+          int splitPos = filterSubString.indexOf(" - ");
+          
+          //If we have the split pos, then substring again, otherwise just take the value
+          if (splitPos == -1)
+            filterSubString = filterSubString.substring(0, splitPos).trim();
+          else filterSubString = filterSubString.trim();
+          
+          try {
+            bggID = Long.parseLong(filterSubString);
+            BGGGame game = database.readBGGGameData(bggID);
+            if (game == null)
+              results =  new SimpleErrorData("No Game Found", "I could not find the requested game.");
+            else 
+              results = game;
+          } catch (Throwable t) {
+            results = new SimpleErrorData("Processing Error", "Unable to retrieve BGGGame data from value " + value);
+          }
+        } else if (source.equalsIgnoreCase("csi")) {
+          //The value format should be "title (csiID - category)
+          long csiID = -1;
+          int openParen = value.lastIndexOf("(");
+          
+          String filterSubString = value.substring(openParen + 1, value.length() - 1);
+          int splitPos = filterSubString.indexOf(" - ");
+          
+          //If we have the split pos, then substring again, otherwise just take the value
+          if (splitPos == -1)
+            filterSubString = filterSubString.substring(0, splitPos).trim();
+          else filterSubString = filterSubString.trim();
+          
+          try {
+            csiID = Long.parseLong(filterSubString);
+            CoolStuffIncPriceData data = database.readCSIPriceData(csiID);
+            if (data == null)
+              results =  new SimpleErrorData("No Game Found", "I could not find the requested game.");
+            else 
+              results = data;
+          } catch (Throwable t) {
+            results = new SimpleErrorData("Processing Error", "Unable to retrieve CSI data from value " + value);
+          }
+        } else if (source.equalsIgnoreCase("mm")) {
+          //The value format should be "title (mmID - category)
+          long mmID = -1;
+          int openParen = value.lastIndexOf("(");
+          
+          String filterSubString = value.substring(openParen + 1, value.length() - 1);
+          int splitPos = filterSubString.indexOf(" - ");
+          
+          //If we have the split pos, then substring again, otherwise just take the value
+          if (splitPos == -1)
+            filterSubString = filterSubString.substring(0, splitPos).trim();
+          else filterSubString = filterSubString.trim();
+          
+          try {
+            mmID = Long.parseLong(filterSubString);
+            MiniatureMarketPriceData data = database.readMMPriceData(mmID);
+            if (data == null)
+              results =  new SimpleErrorData("No Game Found", "I could not find the requested game.");
+            else 
+              results = data;
+          } catch (Throwable t) {
+            results = new SimpleErrorData("Processing Error", "Unable to retrieve MM data from value " + value);
+          }
         }
-        
-        System.out.println ("Game Name:     " + gameName);
-        System.out.println ("Primary Pub:   " + primaryPub);
-        System.out.println ("yearPublished: " + yearPublished);
-        
-        CompactSearchData data = database.readGameFromAutoName(gameName, primaryPub, yearPublished);
-        
-        if (data == null)
-          results =  new SimpleErrorData("No Game Found", "I could not find the requested game.");
-        else 
-          results = data;
       }
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
