@@ -113,12 +113,16 @@ public class AutocompleteController {
           int splitPos = filterSubString.indexOf(" - ");
           
           //If we have the split pos, then substring again, otherwise just take the value
-          if (splitPos == -1)
+          if (splitPos != -1)
             filterSubString = filterSubString.substring(0, splitPos).trim();
           else filterSubString = filterSubString.trim();
           
           try {
             bggID = Long.parseLong(filterSubString);
+            
+            System.out.println ("bggID: " + bggID);
+            
+            
             BGGGame game = database.readBGGGameData(bggID);
             if (game == null)
               results =  new SimpleErrorData("No Game Found", "I could not find the requested game.");
@@ -126,6 +130,7 @@ public class AutocompleteController {
               results = game;
           } catch (Throwable t) {
             results = new SimpleErrorData("Processing Error", "Unable to retrieve BGGGame data from value " + value);
+            t.printStackTrace();
           }
         } else if (source.equalsIgnoreCase("csi")) {
           //The value format should be "title (csiID - category)
@@ -136,7 +141,7 @@ public class AutocompleteController {
           int splitPos = filterSubString.indexOf(" - ");
           
           //If we have the split pos, then substring again, otherwise just take the value
-          if (splitPos == -1)
+          if (splitPos != -1)
             filterSubString = filterSubString.substring(0, splitPos).trim();
           else filterSubString = filterSubString.trim();
           
@@ -159,7 +164,7 @@ public class AutocompleteController {
           int splitPos = filterSubString.indexOf(" - ");
           
           //If we have the split pos, then substring again, otherwise just take the value
-          if (splitPos == -1)
+          if (splitPos != -1)
             filterSubString = filterSubString.substring(0, splitPos).trim();
           else filterSubString = filterSubString.trim();
           
