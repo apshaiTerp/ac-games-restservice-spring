@@ -69,41 +69,50 @@ public class AutocompleteController {
         
         if (source.equalsIgnoreCase("game")) {
           //The value format should be "gameName (<optional publisher> - <optional year published>)
-          String gameName   = null;
-          String primaryPub = null;
-          int yearPublished = -1;
+          //OR <gameID>
           
-          int openParen = value.lastIndexOf("(");
-          if (openParen == -1)
-            gameName = value.trim();
-          else {
-            gameName = value.substring(0, openParen - 1).trim();
-            String filterSubString = value.substring(openParen + 1, value.length() - 1);
-            int splitPos = filterSubString.indexOf(" - ");
-            if (splitPos != -1) {
-              //It has a publisher and a date
-              primaryPub = filterSubString.substring(0, splitPos).trim();
-              yearPublished = Integer.parseInt(filterSubString.substring(splitPos+3).trim());
-            } else {
-              //It is a publisher OR a date
-              try {
-                yearPublished = Integer.parseInt(filterSubString);
-              } catch (NumberFormatException nfe) {
-                primaryPub = filterSubString;
+          if (value.startsWith("<")) {
+            value = value.replace("<", "");
+            value = value.replace(">", "");
+            
+            results = database.readGamesCompact(value);
+          } else {
+            String gameName   = null;
+            String primaryPub = null;
+            int yearPublished = -1;
+            
+            int openParen = value.lastIndexOf("(");
+            if (openParen == -1)
+              gameName = value.trim();
+            else {
+              gameName = value.substring(0, openParen - 1).trim();
+              String filterSubString = value.substring(openParen + 1, value.length() - 1);
+              int splitPos = filterSubString.indexOf(" - ");
+              if (splitPos != -1) {
+                //It has a publisher and a date
+                primaryPub = filterSubString.substring(0, splitPos).trim();
+                yearPublished = Integer.parseInt(filterSubString.substring(splitPos+3).trim());
+              } else {
+                //It is a publisher OR a date
+                try {
+                  yearPublished = Integer.parseInt(filterSubString);
+                } catch (NumberFormatException nfe) {
+                  primaryPub = filterSubString;
+                }
               }
             }
+            
+            System.out.println ("Game Name:     " + gameName);
+            System.out.println ("Primary Pub:   " + primaryPub);
+            System.out.println ("yearPublished: " + yearPublished);
+            
+            CompactSearchData data = database.readGameFromAutoName(gameName, primaryPub, yearPublished);
+            
+            if (data == null)
+              results =  new SimpleErrorData("No Game Found", "I could not find the requested game.");
+            else 
+              results = data;
           }
-          
-          System.out.println ("Game Name:     " + gameName);
-          System.out.println ("Primary Pub:   " + primaryPub);
-          System.out.println ("yearPublished: " + yearPublished);
-          
-          CompactSearchData data = database.readGameFromAutoName(gameName, primaryPub, yearPublished);
-          
-          if (data == null)
-            results =  new SimpleErrorData("No Game Found", "I could not find the requested game.");
-          else 
-            results = data;
         } else if (source.equalsIgnoreCase("bgg")) {
           //The value format should be "gameName (bggID - <optional year published>)
           long bggID = -1;
