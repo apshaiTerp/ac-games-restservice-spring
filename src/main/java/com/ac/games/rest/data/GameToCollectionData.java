@@ -12,21 +12,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class AddGameToCollectionData {
+public class GameToCollectionData {
   
   private long gameID;
   private long userID;
   
-  public AddGameToCollectionData() {
+  public GameToCollectionData() {
     gameID = -1;
     userID = -1;
   }
 
-  public AddGameToCollectionData(String jsonString) {
+  public GameToCollectionData(String jsonString) {
     super();
     ObjectMapper mapper = new ObjectMapper();
     try {
-      AddGameToCollectionData jsonData = mapper.readValue(jsonString, AddGameToCollectionData.class);
+      GameToCollectionData jsonData = mapper.readValue(jsonString, GameToCollectionData.class);
       setGameID(jsonData.getGameID());
       setUserID(jsonData.getUserID());
     } catch (JsonParseException jpe) {

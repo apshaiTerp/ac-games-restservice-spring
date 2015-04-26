@@ -1,12 +1,16 @@
 package com.ac.games.rest.controller;
 
+import java.util.List;
+
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ac.games.data.Collection;
 import com.ac.games.data.CollectionItem;
+import com.ac.games.data.User;
 import com.ac.games.db.GamesDatabase;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
@@ -149,9 +153,12 @@ public class CollectionItemController {
    * @return A {@link SimpleMessageData} or {@link SimpleErrorData} message indicating the operation status
    */
   @RequestMapping(method = RequestMethod.DELETE, produces="application/json;charset=UTF-8")
-  public Object deleteCollectionItem(@RequestParam(value="itemid", defaultValue="-1") long itemID) {
+  public Object deleteCollectionItem(@RequestParam(value="itemid", defaultValue="-1") long itemID,
+                                     @RequestParam(value="userid", defaultValue="-1") long userID) {
     if (itemID <= 0)
       return new SimpleErrorData("CollectionItem Data Error", "There was no valid CollectionItem request data provided");
+    if (userID <= 0)
+      return new SimpleErrorData("CollectionItem Data Error", "There was no valid userID provided");
 
     GamesDatabase database = null; 
     try {
@@ -165,7 +172,28 @@ public class CollectionItemController {
         return new SimpleErrorData("No Such CollectionItem", "No CollectionItem with this ID Exists");
       }
       
+      //Now we have to go fetch the user, so we can get to his collection, and trim this item out.
+      User curUser = database.readUser(userID);
+      if (curUser == null) {
+        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        return new SimpleErrorData("No Such User", "No User with this ID Exists");
+      }
+      
       database.deleteCollectionItem(itemID);
+      
+      Collection collection = database.readCollection(curUser.getCollectionID());
+      List<CollectionItem> games = collection.getGames();
+      for (CollectionItem item : games) {
+        if (item.getGameID() == existCollectionItem.getGameID())
+          games.remove(item);
+      }
+      switch (existCollectionItem.getGame().getGameType()) {
+        case BASE : collection.setBaseGameCount(collection.getBaseGameCount() - 1); break;
+        case EXPANSION : collection.setExpansionGameCount(collection.getExpansionGameCount() - 1); break;
+        case COLLECTIBLE : collection.setCollectibleGameCount(collection.getCollectibleGameCount() - 1); break;
+        default: break;
+      }
+      database.updateCollection(collection);
       
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();

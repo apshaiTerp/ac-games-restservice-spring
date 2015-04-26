@@ -19,7 +19,7 @@ import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.rest.Application;
-import com.ac.games.rest.data.AddGameToCollectionData;
+import com.ac.games.rest.data.GameToCollectionData;
 import com.ac.games.rest.message.SimpleErrorData;
 import com.ac.games.rest.message.SimpleMessageData;
 
@@ -40,7 +40,7 @@ public class CollectionAddController {
    * indicating it failed.
    */
   @RequestMapping(method = RequestMethod.POST, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
-  public Object postNewCollectionItem(@RequestBody AddGameToCollectionData data) {
+  public Object postNewCollectionItem(@RequestBody GameToCollectionData data) {
     if (data == null)
       return new SimpleErrorData("Collection Data Error", "There was no valid Collection request data provided");
     
