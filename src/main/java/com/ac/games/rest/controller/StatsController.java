@@ -43,14 +43,19 @@ public class StatsController {
    * @return One of the Stat family of objects or {@link SimpleErrorData} message reporting what failed.
    */
   @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
-  public Object getStats(@RequestParam(value="type") String type) {
+  public Object getStats(@RequestParam(value="type") String type,
+                         @RequestParam(value="userid", defaultValue="-1") long userID) {
     if (type == null)
       return new SimpleErrorData("Stats Request Error", "There was no valid stat type request data provided");
     
     if ((!type.equalsIgnoreCase(BGGGameStats.BGG_GAME_STATS)) && 
         (!type.equalsIgnoreCase(CSIDataStats.CSI_DATA_STATS)) &&
-        (!type.equalsIgnoreCase(MMDataStats.MM_DATA_STATS)))
+        (!type.equalsIgnoreCase(MMDataStats.MM_DATA_STATS)) &&
+        (!type.equalsIgnoreCase("user")))
       return new SimpleErrorData("Stats Request Error", "The Stats Type " + type + " is unknown and cannot be retrieved.");
+    
+    if (type.equalsIgnoreCase("user") && (userID == -1))
+      return new SimpleErrorData("Stats Request Error", "The Stats Type collection requires a userID");
     
     GamesDatabase database = null; 
     Object statResult = null;
@@ -64,6 +69,8 @@ public class StatsController {
         statResult = database.readCSIDataStats();
       else if (type.equalsIgnoreCase(MMDataStats.MM_DATA_STATS))
         statResult = database.readMMDataStats();
+      else if (type.equalsIgnoreCase("user"))
+        statResult = database.readCollectionStats(userID);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
