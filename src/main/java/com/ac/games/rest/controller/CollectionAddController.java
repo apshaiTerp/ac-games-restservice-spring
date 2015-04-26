@@ -48,7 +48,7 @@ public class CollectionAddController {
       return new SimpleErrorData("Collection Data Error", "There was no GameID provided with this request");
     if (data.getUserID() < 0)
       return new SimpleErrorData("Collection Data Error", "There was no UserID provided with this request");
-
+    Game currentGame       = null;
     GamesDatabase database = null; 
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
@@ -67,7 +67,7 @@ public class CollectionAddController {
         return new SimpleErrorData("Invalid Collection Error", "This user has corrupted collection information");
       }
         
-      Game currentGame = database.readGame(data.getGameID());
+      currentGame = database.readGame(data.getGameID());
       if (currentGame == null) {
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("Invalid Game Error", "This game could not be found in the system");
@@ -85,7 +85,7 @@ public class CollectionAddController {
       
       if (found) {
         try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
-        return new SimpleMessageData("Operation Successful", "This Game is already part of the collection");
+        return new SimpleMessageData("Operation Successful", currentGame.getName() + " is already part of your collection!");
       }
       
       //We should have all the necessary pieces.  We need to update the Collection data and write the new Collection Item
@@ -122,6 +122,6 @@ public class CollectionAddController {
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
-    return new SimpleMessageData("Operation Successful", "The Post Request Completed Successfully");
+    return new SimpleMessageData("Operation Successful", currentGame.getName() + " has been added to your collection!");
   }
 }
