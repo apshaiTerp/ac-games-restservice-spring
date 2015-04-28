@@ -12,12 +12,14 @@ public class LoginSuccessData extends SimpleMessageData {
   private long userID;
   private String userFirstName;
   private String userRole;
+  private long collectionID;
   
   public LoginSuccessData() {
     super("Login Successful", "The Login Validated Successfully");  
     userID        = -1;
     userFirstName = null;
     userRole      = null;
+    setCollectionID(-1);
   }
 
   /**
@@ -60,5 +62,19 @@ public class LoginSuccessData extends SimpleMessageData {
    */
   public void setUserRole(String userRole) {
     this.userRole = userRole;
+  }
+
+  /**
+   * @return the collectionID
+   */
+  public long getCollectionID() {
+    return collectionID;
+  }
+
+  /**
+   * @param collectionID the collectionID to set
+   */
+  public void setCollectionID(long collectionID) {
+    this.collectionID = collectionID;
   }
 }

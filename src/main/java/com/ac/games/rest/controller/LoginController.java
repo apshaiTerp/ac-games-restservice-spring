@@ -73,6 +73,7 @@ public class LoginController {
         case ADMIN : successData.setUserRole("Admin"); break;
         default    : successData.setUserRole("None");
       }
+      successData.setCollectionID(user.getCollectionID());
       
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
