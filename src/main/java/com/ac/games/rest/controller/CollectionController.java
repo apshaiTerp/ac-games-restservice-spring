@@ -81,7 +81,7 @@ public class CollectionController {
             //Now we need to sort and choose
             Collections.sort(allItems);
             List<CompactSearchData> resultList = new ArrayList<CompactSearchData>();
-            for (int i = 0; (i < topX) && (i < allItems.size()); i++) {
+            for (int i = 0; ((i < topX) && (i < allItems.size())); i++) {
               CollectionItem item = allItems.get(i);
               CompactSearchData data = new CompactSearchData();
               String displayString = item.getGame().getName();
@@ -96,6 +96,7 @@ public class CollectionController {
               else data.setSourceField("Game ID: " + item.getGameID());
               resultList.add(data);
             }
+            results = resultList;
           }
         }
       } else if (compact.equalsIgnoreCase("yes") || compact.equalsIgnoreCase("y")) {
