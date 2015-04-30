@@ -232,6 +232,7 @@ public class CollectionItemController {
         
         if (collectionID != -1) {
           Collection curCollection = database.readCollection(collectionID);
+          
           if (curCollection != null) {
             boolean updateCollection = false;
             List<CollectionItem> allItems = curCollection.getGames();
@@ -312,7 +313,8 @@ public class CollectionItemController {
    */
   @RequestMapping(method = RequestMethod.DELETE, produces="application/json;charset=UTF-8")
   public Object deleteCollectionItem(@RequestParam(value="itemid", defaultValue="-1") long itemID,
-                                     @RequestParam(value="userid", defaultValue="-1") long userID) {
+                                     @RequestParam(value="userid", defaultValue="-1") long userID,
+                                     @RequestParam(value="cascade", defaultValue="no") String cascade) {
     if (itemID <= 0)
       return new SimpleErrorData("CollectionItem Data Error", "There was no valid CollectionItem request data provided");
     if (userID <= 0)
@@ -352,6 +354,30 @@ public class CollectionItemController {
         case COLLECTIBLE : collection.setCollectibleGameCount(collection.getCollectibleGameCount() - 1); break;
         default: break;
       }
+      
+      if (cascade.equalsIgnoreCase("yes") || cascade.equalsIgnoreCase("y")) {
+        List<Long> expansionIDs = existCollectionItem.getGame().getExpansionIDs();
+        //If we have child games, try to trim them from the collection
+        if ((expansionIDs != null) && (expansionIDs.size() > 0)) {
+          for (long expGameID : expansionIDs) {
+            CollectionItem foundItem = null;
+            for (CollectionItem curGame : games) {
+              if (curGame.getGameID() == expGameID) {
+                foundItem = curGame;
+                break;
+              }
+            }
+            if (foundItem != null) {
+              games.remove(foundItem);
+              collection.setExpansionGameCount(collection.getExpansionGameCount() - 1);
+              
+              //delete the expansion item
+              database.deleteCollectionItem(foundItem.getItemID());
+            }
+          }
+        }
+      }
+      
       database.updateCollection(collection);
       
     } catch (DatabaseOperationException doe) {
