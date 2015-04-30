@@ -339,18 +339,32 @@ public class CollectionItemController {
         return new SimpleErrorData("No Such User", "No User with this ID Exists");
       }
       
+      //DEBUG
+      //System.out.println ("I'm removing the original ID");
       database.deleteCollectionItem(itemID);
       
       Collection collection = database.readCollection(curUser.getCollectionID());
       List<CollectionItem> games = collection.getGames();
+      
+      //DEBUG
+      //System.out.println ("Scanning through " + games.size() + " items to see if I have a match in my collection");
       for (CollectionItem item : games) {
-        if (item.getGameID() == existCollectionItem.getGameID())
+        if (item.getGameID() == existCollectionItem.getGameID()) {
+          
+          //DEBUG
+          //System.out.println ("I think I should be removing something here...");
           games.remove(item);
+          break;
+        }
       }
+      
+      //DEBUG
+      //System.out.println ("Did anything change: " + games.size());
+      
       collection.setGames(games);
       switch (existCollectionItem.getGame().getGameType()) {
-        case BASE : collection.setBaseGameCount(collection.getBaseGameCount() - 1); break;
-        case EXPANSION : collection.setExpansionGameCount(collection.getExpansionGameCount() - 1); break;
+        case BASE        : collection.setBaseGameCount(collection.getBaseGameCount() - 1); break;
+        case EXPANSION   : collection.setExpansionGameCount(collection.getExpansionGameCount() - 1); break;
         case COLLECTIBLE : collection.setCollectibleGameCount(collection.getCollectibleGameCount() - 1); break;
         default: break;
       }
@@ -378,8 +392,9 @@ public class CollectionItemController {
         }
       }
       
+      //DEBUG
+      //System.out.println ("I'm about to update the collection....");
       database.updateCollection(collection);
-      
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
