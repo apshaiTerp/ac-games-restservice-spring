@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ac.games.data.Collection;
 import com.ac.games.data.CollectionItem;
+import com.ac.games.data.GameWeight;
 import com.ac.games.data.User;
 import com.ac.games.db.GamesDatabase;
 import com.ac.games.db.MongoDBFactory;
@@ -101,7 +102,7 @@ public class CollectionItemController {
         //If it has no spaces, try to convert it into a number
         String parseString = itemEdits.getOverrideMinPlayers();
         if (parseString.indexOf(" ") != -1) 
-          parseString = parseString.substring(0, parseString.indexOf(" ") - 1);
+          parseString = parseString.substring(0, parseString.indexOf(" ")).trim();
         
         try {
           int newMinPlayers = Integer.parseInt(parseString);
@@ -121,7 +122,7 @@ public class CollectionItemController {
         //If it has no spaces, try to convert it into a number
         String parseString = itemEdits.getOverrideMaxPlayers();
         if (parseString.indexOf(" ") != -1) 
-          parseString = parseString.substring(0, parseString.indexOf(" ") - 1);
+          parseString = parseString.substring(0, parseString.indexOf(" ")).trim();
         
         try {
           int newMaxPlayers = Integer.parseInt(parseString);
@@ -142,7 +143,7 @@ public class CollectionItemController {
         //If it has no spaces, try to convert it into a number
         String parseString = itemEdits.getOverrideMinTime();
         if (parseString.indexOf(" ") != -1) 
-          parseString = parseString.substring(0, parseString.indexOf(" ") - 1);
+          parseString = parseString.substring(0, parseString.indexOf(" ")).trim();
         
         try {
           int newMinTime = Integer.parseInt(parseString);
@@ -162,7 +163,7 @@ public class CollectionItemController {
         //If it has no spaces, try to convert it into a number
         String parseString = itemEdits.getOverrideMaxTime();
         if (parseString.indexOf(" ") != -1) 
-          parseString = parseString.substring(0, parseString.indexOf(" ") - 1);
+          parseString = parseString.substring(0, parseString.indexOf(" ")).trim();
         
         try {
           int newMaxTime = Integer.parseInt(parseString);
@@ -183,6 +184,45 @@ public class CollectionItemController {
         if (itemEdits.getOverrideWhere().trim().length() > 0) {
           item.setWhereAcquired(itemEdits.getOverrideWhere().trim());
           hasChanged = true;
+        }
+      }
+      
+      //Now check the list of weights, both for what is there and what isn't.
+      if (itemEdits.getGameWeights() != null) {
+        List<GameWeight> newWeights = itemEdits.getGameWeights();
+        if (newWeights.size() == 0) {
+          if ((item.getWeights() == null) || (item.getWeights().size() > 0)) {
+            item.setWeights(newWeights);
+            hasChanged = true;
+          }
+        } else {
+          if ((item.getWeights() == null) || (item.getWeights().size() == 0)) {
+            item.setWeights(newWeights);
+            hasChanged = true;
+          } else if (newWeights.size() != item.getWeights().size()) {
+            item.setWeights(newWeights);
+            hasChanged = true;
+          } else {
+            //The lists are the same length, we need to compare to make sure they have the same elements
+            boolean different = false;
+            for (GameWeight newWeight : newWeights) {
+              boolean found = false;
+              for (GameWeight oldWeight : item.getWeights()) {
+                if (newWeight == oldWeight) {
+                  found = true;
+                  break;
+                }
+              }
+              if (!found) {
+                different = true;
+                break;
+              }
+            }
+            if (different) {
+              item.setWeights(newWeights);
+              hasChanged = true;
+            }
+          }
         }
       }
 

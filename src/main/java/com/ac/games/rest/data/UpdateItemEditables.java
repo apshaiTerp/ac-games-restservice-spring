@@ -1,7 +1,9 @@
 package com.ac.games.rest.data;
 
 import java.io.IOException;
+import java.util.List;
 
+import com.ac.games.data.GameWeight;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -19,6 +21,7 @@ public class UpdateItemEditables {
   private String overrideMinTime;
   private String overrideMaxTime;
   private String overrideWhere;
+  private List<GameWeight> gameWeights;
   
   public UpdateItemEditables() {
     overrideMinPlayers = null;
@@ -26,6 +29,7 @@ public class UpdateItemEditables {
     overrideMinTime    = null;
     overrideMaxTime    = null;
     overrideWhere      = null;
+    gameWeights        = null;
   }
   
   public UpdateItemEditables(String jsonString) {
@@ -38,6 +42,7 @@ public class UpdateItemEditables {
       overrideMinTime    = jsonData.overrideMinTime;
       overrideMaxTime    = jsonData.overrideMaxTime;
       overrideWhere      = jsonData.overrideWhere;
+      gameWeights        = jsonData.gameWeights;
     } catch (JsonParseException jpe) {
       jpe.printStackTrace();
     } catch (JsonMappingException jme) {
@@ -115,5 +120,19 @@ public class UpdateItemEditables {
    */
   public void setOverrideWhere(String overrideWhere) {
     this.overrideWhere = overrideWhere;
+  }
+
+  /**
+   * @return the gameWeights
+   */
+  public List<GameWeight> getGameWeights() {
+    return gameWeights;
+  }
+
+  /**
+   * @param gameWeights the gameWeights to set
+   */
+  public void setGameWeights(List<GameWeight> gameWeights) {
+    this.gameWeights = gameWeights;
   }
 }

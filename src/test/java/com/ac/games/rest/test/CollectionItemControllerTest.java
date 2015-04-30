@@ -30,6 +30,7 @@ import com.ac.games.rest.controller.BGGDataController;
 import com.ac.games.rest.controller.CollectionItemController;
 import com.ac.games.rest.controller.UserController;
 import com.ac.games.rest.data.NewUserData;
+import com.ac.games.rest.data.UpdateItemEditables;
 import com.jayway.restassured.module.mockmvc.RestAssuredMockMvc;
 
 /**
@@ -199,21 +200,22 @@ public class CollectionItemControllerTest {
         body("weights", hasItems(GameWeight.MEDIUM.toString()));
     
     System.out.println ("===  PUT Request from Altered Content through Service  ===");
-    item.setDateAcquired(new Date(20000000));
+    UpdateItemEditables editables = new UpdateItemEditables();
     weights.add(GameWeight.FAMILY);
-    item.setWeights(weights);
+    editables.setGameWeights(weights);
+    editables.setOverrideWhere("During a Much Later JUnit Test");
     
     given().
       param("itemid", 7766L).
       contentType("application/json").
-      body(item).
+      body(editables).
     when().
       put("/collectionitem").
     then().
       assertThat().
         statusCode(200).
         body("messageType", equalTo("Operation Successful")).
-        body("message", equalTo("The Put Request Completed Successfully"));
+        body("message", equalTo("The Collection Item was Successfully Updated"));
     
     System.out.println ("===  Validation GET Request from Previous PUT through Service  ===");
     //Run our Select from BGG Master Data
