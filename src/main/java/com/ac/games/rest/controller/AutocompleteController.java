@@ -1,6 +1,7 @@
 package com.ac.games.rest.controller;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -8,14 +9,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ac.games.data.BGGGame;
+import com.ac.games.data.Collection;
+import com.ac.games.data.CollectionItem;
 import com.ac.games.data.CompactSearchData;
 import com.ac.games.data.CoolStuffIncPriceData;
 import com.ac.games.data.MiniatureMarketPriceData;
+import com.ac.games.data.User;
 import com.ac.games.db.GamesDatabase;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.rest.Application;
+import com.ac.games.rest.data.SplitList;
 import com.ac.games.rest.data.WrapList;
 import com.ac.games.rest.message.SimpleErrorData;
 
@@ -34,15 +39,20 @@ public class AutocompleteController {
 
   @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
   public Object getAutoComplete(@RequestParam(value="source") String source,
-                                @RequestParam(value="value", defaultValue="full") String value) {
+                                @RequestParam(value="value", defaultValue="full") String value,
+                                @RequestParam(value="userid", defaultValue="-1") long userID) {
     
     if (source == null)
       return new SimpleErrorData("Invalid Parameters", "The source parameter was not provided");
     if (value == null)
       return new SimpleErrorData("Invalid Parameters", "The value parameter was not provided");
 
-    if ((!source.equalsIgnoreCase("game")) && (!source.equalsIgnoreCase("bgg")) && (!source.equalsIgnoreCase("csi")) && (!source.equalsIgnoreCase("mm")))
+    if ((!source.equalsIgnoreCase("game")) && (!source.equalsIgnoreCase("bgg")) && (!source.equalsIgnoreCase("csi")) && 
+        (!source.equalsIgnoreCase("mm")) && (!source.equalsIgnoreCase("item")))
       return new SimpleErrorData("Invalid Parameters", "The source parameter value of " + source + " is not a valid source value.");
+    
+    if (source.equalsIgnoreCase("item") && (userID == -1))
+      return new SimpleErrorData("Invalid Parameters", "Requests with source=item must provide a valid userid");
     
     GamesDatabase database = null; 
     Object results = null;
@@ -63,7 +73,6 @@ public class AutocompleteController {
           results = new WrapList(database.readCSITitlesForAutoComplete());
         else if (source.equalsIgnoreCase("mm"))
           results = new WrapList(database.readMMTitlesForAutoComplete());
-        
       } else {
         System.out.println ("The value I'm going to deconstruct is: " + value);
         
@@ -112,6 +121,51 @@ public class AutocompleteController {
               results =  new SimpleErrorData("No Game Found", "I could not find the requested game.");
             else 
               results = data;
+          }
+        } else if (source.equalsIgnoreCase("item")) {
+          //Assume it's got the same range values
+          value = value.replace("<", "");
+          value = value.replace(">", "");
+          
+          SplitList splitList = new SplitList();
+          List<CompactSearchData> foundItems = database.readGamesCompact(value);
+          if (foundItems == null)
+            results = splitList;
+          else if (foundItems.size() == 0)
+            results = splitList;
+          else {
+            //We've got a modest amount of work to do here.
+            User curUser = database.readUser(userID);
+            if (curUser == null)
+              return new SimpleErrorData("No User Found", "There is no User in the system matching this userid");
+            
+            Collection curCollection = database.readCollection(curUser.getCollectionID());
+            if (curCollection == null)
+              return new SimpleErrorData("No Collection Found", "This user does not appear to have a collection yet");
+            
+            List<CollectionItem> ownedGames = curCollection.getGames();
+            if ((ownedGames == null) || (ownedGames.size() == 0)) {
+              splitList.setOtherGames(foundItems);
+              results = splitList;
+            } else {
+              //There are some games being reported, and some games in the collection.
+              //We need to walk through the games found, determine if they are owned, and assign them appropriately
+              for (CompactSearchData curGame : foundItems) {
+                boolean found = false;
+                for (CollectionItem item : ownedGames) {
+                  if (curGame.getSourceID() == item.getGameID()) {
+                    found = true;
+                    curGame.setSourceField("Game ID: " + curGame.getSourceID() + "  [You Own This Game]");
+                    curGame.setSourceID(item.getItemID());
+                    splitList.addNewOwnedItem(curGame);
+                    break;
+                  }
+                }
+                if (!found)
+                  splitList.addNewOtherGame(curGame);
+              }
+              results = splitList;
+            }
           }
         } else if (source.equalsIgnoreCase("bgg")) {
           //The value format should be "gameName (bggID - <optional year published>)
