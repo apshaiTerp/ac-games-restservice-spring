@@ -16,6 +16,7 @@ import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.rest.Application;
+import com.ac.games.rest.data.UpdateItemEditables;
 import com.ac.games.rest.message.SimpleErrorData;
 import com.ac.games.rest.message.SimpleMessageData;
 
@@ -79,20 +80,114 @@ public class CollectionItemController {
    */
   @RequestMapping(method = RequestMethod.PUT, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
   public Object putCollectionItem(@RequestParam(value="itemid", defaultValue="-1") long itemID,
-                                  @RequestBody CollectionItem item) {
+                                  @RequestBody UpdateItemEditables itemEdits) {
     if (itemID <= 0)
       return new SimpleErrorData("CollectionItem Data Error", "There was no valid CollectionItem request data provided");
-    if (item == null)
+    if (itemEdits == null)
       return new SimpleErrorData("CollectionItem Data Error", "There was no valid CollectionItem request data provided");
-    if (itemID != item.getItemID())
-      return new SimpleErrorData("CollectionItem Data Error", "The itemID parameter and itemID value of the RequestBody do not match");
 
     GamesDatabase database = null; 
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
       
-      database.updateCollectionItem(item);
+      CollectionItem item = database.readCollectionItem(itemID);
+      if (item == null)
+        return new SimpleErrorData("CollectionItem Not Found", "No CollectionItem with this ItemID exists");
+      
+      boolean hasChanged = false;
+      //Now we need to inspect the fields and validate if we have meaningful values.
+      if (itemEdits.getOverrideMinPlayers() != null) {
+        //If it has no spaces, try to convert it into a number
+        String parseString = itemEdits.getOverrideMinPlayers();
+        if (parseString.indexOf(" ") != -1) 
+          parseString = parseString.substring(0, parseString.indexOf(" ") - 1);
+        
+        try {
+          int newMinPlayers = Integer.parseInt(parseString);
+          if (newMinPlayers < 1)
+            return new SimpleErrorData("Data Parsing Error", "The provided overrideMinPlayers value of " + itemEdits.getOverrideMinPlayers() + 
+                " is not a valid player count");
+          if (newMinPlayers != item.getOverrideMinPlayers()) {
+            item.setOverrideMinPlayers(newMinPlayers);
+            hasChanged = true;
+          }
+        } catch (NumberFormatException nfe) {
+          return new SimpleErrorData("Data Parsing Error", "The provided overrideMinPlayers value of " + itemEdits.getOverrideMinPlayers() + 
+              " could not be parsed into a player count");
+        }
+      }
+      if (itemEdits.getOverrideMaxPlayers() != null) {
+        //If it has no spaces, try to convert it into a number
+        String parseString = itemEdits.getOverrideMaxPlayers();
+        if (parseString.indexOf(" ") != -1) 
+          parseString = parseString.substring(0, parseString.indexOf(" ") - 1);
+        
+        try {
+          int newMaxPlayers = Integer.parseInt(parseString);
+          if (newMaxPlayers < 1)
+            return new SimpleErrorData("Data Parsing Error", "The provided overrideMaxPlayers value of " + itemEdits.getOverrideMaxPlayers() + 
+                " is not a valid player count");
+          if (newMaxPlayers != item.getOverrideMaxPlayers()) {
+            item.setOverrideMinPlayers(newMaxPlayers);
+            hasChanged = true;
+          }
+        } catch (NumberFormatException nfe) {
+          return new SimpleErrorData("Data Parsing Error", "The provided overrideMaxPlayers value of " + itemEdits.getOverrideMaxPlayers() + 
+              " could not be parsed into a player count");
+        }
+      }
+      
+      if (itemEdits.getOverrideMinTime() != null) {
+        //If it has no spaces, try to convert it into a number
+        String parseString = itemEdits.getOverrideMinTime();
+        if (parseString.indexOf(" ") != -1) 
+          parseString = parseString.substring(0, parseString.indexOf(" ") - 1);
+        
+        try {
+          int newMinTime = Integer.parseInt(parseString);
+          if (newMinTime < 1)
+            return new SimpleErrorData("Data Parsing Error", "The provided overrideMinTime value of " + itemEdits.getOverrideMinTime() + 
+                " is not a valid playing time");
+          if (newMinTime != item.getOverrideMinTime()) {
+            item.setOverrideMinTime(newMinTime);
+            hasChanged = true;
+          }
+        } catch (NumberFormatException nfe) {
+          return new SimpleErrorData("Data Parsing Error", "The provided overrideMinTime value of " + itemEdits.getOverrideMinTime() + 
+              " could not be parsed into a playing time");
+        }
+      }
+      if (itemEdits.getOverrideMaxTime() != null) {
+        //If it has no spaces, try to convert it into a number
+        String parseString = itemEdits.getOverrideMaxTime();
+        if (parseString.indexOf(" ") != -1) 
+          parseString = parseString.substring(0, parseString.indexOf(" ") - 1);
+        
+        try {
+          int newMaxTime = Integer.parseInt(parseString);
+          if (newMaxTime < 1)
+            return new SimpleErrorData("Data Parsing Error", "The provided overrideMaxTime value of " + itemEdits.getOverrideMaxTime() + 
+                " is not a valid playing time");
+          if (newMaxTime != item.getOverrideMaxTime()) {
+            item.setOverrideMaxTime(newMaxTime);
+            hasChanged = true;
+          }
+        } catch (NumberFormatException nfe) {
+          return new SimpleErrorData("Data Parsing Error", "The provided overrideMaxTime value of " + itemEdits.getOverrideMaxTime() + 
+              " could not be parsed into a playing time");
+        }
+      }
+      
+      if (itemEdits.getOverrideWhere() != null) {
+        if (itemEdits.getOverrideWhere().trim().length() > 0) {
+          item.setWhereAcquired(itemEdits.getOverrideWhere().trim());
+          hasChanged = true;
+        }
+      }
+
+      if (hasChanged)
+        database.updateCollectionItem(item);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -105,7 +200,7 @@ public class CollectionItemController {
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
-    return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
+    return new SimpleMessageData("Operation Successful", "The Collection Item was Successfully Updated");
   }
   
   /**
@@ -187,6 +282,7 @@ public class CollectionItemController {
         if (item.getGameID() == existCollectionItem.getGameID())
           games.remove(item);
       }
+      collection.setGames(games);
       switch (existCollectionItem.getGame().getGameType()) {
         case BASE : collection.setBaseGameCount(collection.getBaseGameCount() - 1); break;
         case EXPANSION : collection.setExpansionGameCount(collection.getExpansionGameCount() - 1); break;

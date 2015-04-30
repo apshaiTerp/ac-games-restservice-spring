@@ -1,12 +1,19 @@
 package com.ac.games.rest.controller;
 
+import java.text.DecimalFormat;
+import java.util.LinkedList;
+import java.util.List;
+
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ac.games.data.CompactPriceData;
+import com.ac.games.data.CoolStuffIncPriceData;
 import com.ac.games.data.GameReltn;
+import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.db.GamesDatabase;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
@@ -29,6 +36,8 @@ import com.ac.games.rest.message.SimpleMessageData;
 @RequestMapping("/gamereltn")
 public class GameReltnController {
 
+  private final static DecimalFormat formatter = new DecimalFormat("'$'0.00");
+  
   /**
    * GET method designed to handle retrieving {@link GameReltn} data from the database.<p>
    * This method supports the following parameters:
@@ -41,18 +50,119 @@ public class GameReltnController {
    * @return A {@link GameReltn} object or {@link SimpleErrorData} message reporting what failed.
    */
   @RequestMapping(method = RequestMethod.GET, produces="application/json;charset=UTF-8")
-  public Object getGameReltn(@RequestParam(value="gameid") long gameID) {
+  public Object getGameReltn(@RequestParam(value="gameid") long gameID,
+                             @RequestParam(value="vendor", defaultValue="none") String vendor) {
     if (gameID <= 0)
       return new SimpleErrorData("User Data Error", "There was no valid game request data provided");
     
+    if ((!vendor.equalsIgnoreCase("none")) && (!vendor.equalsIgnoreCase("all")) && 
+        (!vendor.equalsIgnoreCase("csi")) && (!vendor.equalsIgnoreCase("mm")) && (!vendor.equalsIgnoreCase("amazon")))
+      return new SimpleErrorData("User Data Error", "The provided vendor " + vendor + " is not a valid vendor option");
+    
     GamesDatabase database = null; 
     
-    GameReltn gameReltn = new GameReltn();
+    Object result = null;
     try {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
       
-      gameReltn = database.readGameReltn(gameID);
+      GameReltn gameReltn = database.readGameReltn(gameID);
+      if (vendor.equalsIgnoreCase("none"))
+        result = gameReltn;
+      else {
+        //If we're here, we want game price information, which means we want price information.
+        //Since we don't need a button, we just need to be able to build a link.
+        List<CompactPriceData> priceData = new LinkedList<CompactPriceData>();
+        
+        if (vendor.equalsIgnoreCase("csi")) {
+          List<Long> csiIDs = gameReltn.getCsiIDs();
+          if (csiIDs == null)
+            result = priceData;
+          else if (csiIDs.size() == 0)
+            result = priceData;
+          else {
+            for (long csiID : csiIDs) {
+              CoolStuffIncPriceData data = database.readCSIPriceData(csiID);
+              if (data != null) {
+                CompactPriceData price = new CompactPriceData();
+                price.setTitleDisplay(data.getTitle() + " (CSI ID: " + data.getCsiID() + ")");
+                
+                String availString = "";
+                switch (data.getAvailability()) {
+                  case INSTOCK            : availString = "[This Game is In Stock]"; break;
+                  case PREORDER           : availString = "[Accepting Pre-Orders]"; break;
+                  case OUTOFSTOCK         : availString = "[This Game is Out of Stock]"; break;
+                  case NOTYETTAKINGORDERS : availString = "[This Game is Not Yet Taking Orders]"; break;
+                  default                 : availString = "";
+                }
+                String priceString = "";
+                if (data.getCurPrice() < 0.0) {
+                  if (data.getMsrpValue() < 0.0)
+                    priceString = "";
+                  else 
+                    priceString = "MSRP " + formatter.format(data.getMsrpValue());
+                } else
+                  priceString = formatter.format(data.getCurPrice());
+                
+                String priceDisplayString = priceString + "  " + availString;
+                price.setPriceDisplay(priceDisplayString.trim());
+                
+                price.setLinkURL("http://www.coolstuffinc.com/p/" + data.getCsiID());
+                price.setThumbnailURL(data.getImageURL());
+                
+                priceData.add(price);
+              }
+            }//end for each CSI ID
+            result = priceData;
+          }//end else we have csi data to investigate
+        }//end if csi
+        else if (vendor.equalsIgnoreCase("mm")) {
+          List<Long> mmIDs = gameReltn.getMmIDs();
+          if (mmIDs == null)
+            result = priceData;
+          else if (mmIDs.size() == 0)
+            result = priceData;
+          else {
+            for (long mmID : mmIDs) {
+              MiniatureMarketPriceData data = database.readMMPriceData(mmID);
+              if (data != null) {
+                CompactPriceData price = new CompactPriceData();
+                price.setTitleDisplay(data.getTitle() + " (MM ID: " + data.getMmID() + ")");
+                
+                String availString = "";
+                switch (data.getAvailability()) {
+                  case INSTOCK            : availString = "[This Game is In Stock]"; break;
+                  case PREORDER           : availString = "[Accepting Pre-Orders]"; break;
+                  case OUTOFSTOCK         : availString = "[This Game is Out of Stock]"; break;
+                  case NOTYETTAKINGORDERS : availString = "[This Game is Not Yet Taking Orders]"; break;
+                  default                 : availString = "";
+                }
+                String priceString = "";
+                if (data.getCurPrice() < 0.0) {
+                  if (data.getMsrpValue() < 0.0)
+                    priceString = "";
+                  else 
+                    priceString = "MSRP " + formatter.format(data.getMsrpValue());
+                } else
+                  priceString = formatter.format(data.getCurPrice());
+                
+                String priceDisplayString = priceString + "  " + availString;
+                price.setPriceDisplay(priceDisplayString.trim());
+                
+                if (data.getSku() != null)
+                  price.setLinkURL("http://www.miniaturemarket.com/" + data.getSku() + ".html");
+                else price.setLinkURL("http://www.miniaturemarket.com/catalog/product/view/id/" + data.getMmID());
+                
+                price.setThumbnailURL(data.getImageURL());
+                
+                priceData.add(price);
+              }
+            }//end for each MM ID
+            result = priceData;
+          }//end else we have mm data to investigate
+        }//end if mm
+      }//end else we have a vendor option
+      
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
@@ -65,10 +175,10 @@ public class GameReltnController {
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
-    if (gameReltn == null)
+    if (result == null)
       return new SimpleErrorData("Game Not Found", "The requested item could not be found in the database.");
 
-    return gameReltn;
+    return result;
   }
 
   /**
