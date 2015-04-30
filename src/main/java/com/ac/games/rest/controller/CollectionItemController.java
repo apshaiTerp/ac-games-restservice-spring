@@ -81,6 +81,7 @@ public class CollectionItemController {
    */
   @RequestMapping(method = RequestMethod.PUT, consumes = "application/json;charset=UTF-8", produces="application/json;charset=UTF-8")
   public Object putCollectionItem(@RequestParam(value="itemid", defaultValue="-1") long itemID,
+                                  @RequestParam(value="collectionid", defaultValue="-1") long collectionID,
                                   @RequestBody UpdateItemEditables itemEdits) {
     if (itemID <= 0)
       return new SimpleErrorData("CollectionItem Data Error", "There was no valid CollectionItem request data provided");
@@ -226,8 +227,30 @@ public class CollectionItemController {
         }
       }
 
-      if (hasChanged)
+      if (hasChanged) {
         database.updateCollectionItem(item);
+        
+        if (collectionID != -1) {
+          Collection curCollection = database.readCollection(collectionID);
+          if (curCollection != null) {
+            boolean updateCollection = false;
+            List<CollectionItem> allItems = curCollection.getGames();
+            if (allItems != null) {
+              for (int itemPos = 0; itemPos < allItems.size(); itemPos++) {
+                CollectionItem curItem = allItems.get(itemPos);
+                if (curItem.getItemID() == item.getItemID()) {
+                  updateCollection = true;
+                  allItems.set(itemPos, item);
+                  curCollection.setGames(allItems);
+                  break;
+                }
+              }
+            }
+            if (updateCollection)
+              database.updateCollection(curCollection);
+          }
+        }
+      }
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
