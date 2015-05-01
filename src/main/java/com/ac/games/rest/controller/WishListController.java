@@ -22,7 +22,6 @@ import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.data.User;
 import com.ac.games.data.WishlistItem;
 import com.ac.games.db.GamesDatabase;
-import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.rest.Application;
@@ -72,7 +71,7 @@ public class WishListController {
      Object result = null;
      
      try {
-       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+       database = Application.database;
        database.initializeDBConnection();
        
        if ((gameID == -1) && (display.equalsIgnoreCase("none"))) {
@@ -212,14 +211,14 @@ public class WishListController {
        }
      } catch (DatabaseOperationException doe) {
        doe.printStackTrace();
-       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+       //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
        return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
      } catch (ConfigurationException ce) {
        ce.printStackTrace();
-       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+       //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
        return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
      } finally {
-       try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+       //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
      }
      
      if (result == null)
@@ -248,25 +247,25 @@ public class WishListController {
     GamesDatabase database = null; 
     
     try {
-      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database = Application.database;
       database.initializeDBConnection();
       
       //We need to make sure the user and the game are both valid, and that this item isn't already on wishlist
       WishlistItem item = database.readWishlistItem(wish.getUserID(), wish.getGameID());
       if (item != null) {
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleMessageData("Operation Successful", "This Game is already in your Wishlist!");
       }
       
       User user = database.readUser(wish.getUserID());
       if (user == null) {
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("Invalid User Error", "There was no User matching the provided userID value");
       }
       
       Game game = database.readGame(wish.getGameID());
       if (game == null) {
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("Invalid Game Error", "There was no Game matching the provided gameID value");
       }
       
@@ -282,14 +281,14 @@ public class WishListController {
       database.insertWishlistItem(item);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
     } finally {
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Game was successfully added to your Wishlist!");
@@ -312,7 +311,7 @@ public class WishListController {
     
     GamesDatabase database = null; 
     try {
-      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database = Application.database;
       database.initializeDBConnection();
       
       WishlistItem item = database.readWishlistItem(userID, gameID);
@@ -320,14 +319,14 @@ public class WishListController {
         database.deleteGameReltn(item.getWishID());
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
     } finally {
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Delete Request Completed Successfully");

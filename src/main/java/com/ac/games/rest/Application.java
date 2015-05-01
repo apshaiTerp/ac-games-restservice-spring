@@ -43,7 +43,6 @@ public class Application extends SpringBootServletInitializer {
     try {
       database = MongoDBFactory.createMongoGamesDatabase(databaseHost, databasePort, databaseName);
       database.initializeDBConnection();
-      database.closeDBConnection();
     } catch (ConfigurationException e) {
       e.printStackTrace();
       System.out.println ("Shutting down system!");
@@ -55,6 +54,12 @@ public class Application extends SpringBootServletInitializer {
   
   @PreDestroy
   public static void shutdownHook() {
+    try {
+      database.closeDBConnection();
+    } catch (ConfigurationException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
     System.out.println (">>>  I'm inside the shutdownHook  <<");
   }
 }

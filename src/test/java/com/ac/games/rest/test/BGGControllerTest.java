@@ -42,7 +42,8 @@ public class BGGControllerTest {
     Application.databasePort = 27017;
     Application.databaseName = "mockDB";
     try {
-      MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName).initializeDBConnection();
+      Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      Application.database.initializeDBConnection();
       
       System.out.println ("**********  Database Configuration Enabled  **********");
     } catch (ConfigurationException e) {
@@ -54,7 +55,7 @@ public class BGGControllerTest {
   @After
   public void tearDown() {
     try {
-      MongoDBFactory.getMongoGamesDatabase().closeDBConnection();
+      Application.database.closeDBConnection();
     } catch (ConfigurationException e) {
       e.printStackTrace();
     }
