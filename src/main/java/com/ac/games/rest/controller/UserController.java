@@ -15,6 +15,7 @@ import com.ac.games.data.User;
 import com.ac.games.data.UserDetail;
 import com.ac.games.data.UserRole;
 import com.ac.games.db.GamesDatabase;
+import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.rest.Application;
@@ -48,6 +49,8 @@ public class UserController {
     GamesDatabase database = null; 
     User user              = null;
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       
@@ -92,6 +95,8 @@ public class UserController {
 
     GamesDatabase database = null; 
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       
@@ -136,6 +141,8 @@ public class UserController {
 
     GamesDatabase database = null; 
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       
@@ -193,6 +200,8 @@ public class UserController {
 
     GamesDatabase database = null; 
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       

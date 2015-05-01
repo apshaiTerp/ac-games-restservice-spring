@@ -15,6 +15,7 @@ import com.ac.games.data.Game;
 import com.ac.games.data.GameWeight;
 import com.ac.games.data.User;
 import com.ac.games.db.GamesDatabase;
+import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.rest.Application;
@@ -50,6 +51,8 @@ public class CollectionAddController {
     Game currentGame       = null;
     GamesDatabase database = null; 
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       

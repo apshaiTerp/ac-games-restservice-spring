@@ -26,6 +26,7 @@ import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.data.ReviewState;
 import com.ac.games.data.parser.MiniatureMarketParser;
 import com.ac.games.db.GamesDatabase;
+import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.exception.GameNotFoundException;
@@ -87,6 +88,8 @@ public class MMDataController {
     MiniatureMarketPriceData dbSource = null;
     
     if ((source.equalsIgnoreCase("db")) || (source.equalsIgnoreCase("hybrid"))) {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       GamesDatabase database = null; 
       MiniatureMarketPriceData data = null;
       
@@ -330,6 +333,8 @@ public class MMDataController {
 
     GamesDatabase database = null; 
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       
@@ -428,6 +433,8 @@ public class MMDataController {
     
     GamesDatabase database = null; 
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       
@@ -461,6 +468,8 @@ public class MMDataController {
     
     GamesDatabase database = null; 
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       

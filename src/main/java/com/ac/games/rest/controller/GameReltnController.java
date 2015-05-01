@@ -15,6 +15,7 @@ import com.ac.games.data.CoolStuffIncPriceData;
 import com.ac.games.data.GameReltn;
 import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.db.GamesDatabase;
+import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.rest.Application;
@@ -62,6 +63,8 @@ public class GameReltnController {
     
     Object result = null;
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       
@@ -204,6 +207,8 @@ public class GameReltnController {
     
     GamesDatabase database = null; 
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       
@@ -240,6 +245,8 @@ public class GameReltnController {
     
     GamesDatabase database = null; 
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       
@@ -276,6 +283,8 @@ public class GameReltnController {
     
     GamesDatabase database = null; 
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       
