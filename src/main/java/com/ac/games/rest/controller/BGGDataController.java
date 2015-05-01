@@ -27,6 +27,7 @@ import com.ac.games.data.GameType;
 import com.ac.games.data.ReviewState;
 import com.ac.games.data.parser.BGGGameParser;
 import com.ac.games.db.GamesDatabase;
+import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.exception.GameNotFoundException;
@@ -151,6 +152,8 @@ public class BGGDataController {
       List<BGGGame> allGames = new LinkedList<BGGGame>();
       
       try {
+        if (Application.database == null)
+          Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
         database = Application.database;
         database.initializeDBConnection();
         
@@ -407,6 +410,8 @@ public class BGGDataController {
     
     GamesDatabase database = null; 
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       
@@ -530,6 +535,8 @@ public class BGGDataController {
     
     GamesDatabase database = null; 
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       
@@ -563,6 +570,8 @@ public class BGGDataController {
     
     GamesDatabase database = null; 
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       

@@ -16,6 +16,7 @@ import com.ac.games.data.CoolStuffIncPriceData;
 import com.ac.games.data.MiniatureMarketPriceData;
 import com.ac.games.data.User;
 import com.ac.games.db.GamesDatabase;
+import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.db.exception.DatabaseOperationException;
 import com.ac.games.rest.Application;
@@ -60,6 +61,8 @@ public class AutocompleteController {
       return new ArrayList<CompactSearchData>();
     
     try {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database = Application.database;
       database.initializeDBConnection();
       
