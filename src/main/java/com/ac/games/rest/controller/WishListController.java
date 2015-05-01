@@ -324,7 +324,7 @@ public class WishListController {
       
       WishlistItem item = database.readWishlistItem(userID, gameID);
       if (item != null)
-        database.deleteGameReltn(item.getWishID());
+        database.deleteWishlistItem(item.getWishID());
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
