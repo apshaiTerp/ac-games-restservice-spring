@@ -195,7 +195,7 @@ public class WishListController {
                        price.setPriceDisplay(priceDisplayString.trim());
                        
                        if (data.getSku() != null)
-                         price.setLinkURL("http://www.miniaturemarket.com/" + data.getSku() + ".html");
+                         price.setLinkURL("http://www.miniaturemarket.com/" + data.getSku().toLowerCase() + ".html");
                        else price.setLinkURL("http://www.miniaturemarket.com/catalog/product/view/id/" + data.getMmID());
                        
                        price.setThumbnailURL(data.getImageURL());
