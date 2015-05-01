@@ -205,12 +205,13 @@ public class WishListController {
                        gameItem.addMMData(price);
                      }
                    }//end for each CSI ID
-                 }//end if we have csi data to investigate
-               }
-             }//end for all wishlist items
+                 }//end if we have mm data to investigate
+               }//end if we have gameReltn data to investigate
+               gameList.add(gameItem);
+             }//end if game is not null
              result = gameList;
-           }//end if display = full
-         }
+           }//end for all wishlist items
+         }//end if display = full
        }
      } catch (DatabaseOperationException doe) {
        doe.printStackTrace();
