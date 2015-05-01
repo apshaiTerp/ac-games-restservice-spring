@@ -155,7 +155,7 @@ public class RecommendController {
       return new SimpleErrorData("Recommend Data Error", "At least one parameter must be chosen");
     
     GameWeight findWeight = null;
-    if ((values.getGameWeight() != null) & (values.getGameWeight().equalsIgnoreCase("Any"))) {
+    if ((values.getGameWeight() != null) & (!values.getGameWeight().equalsIgnoreCase("Any"))) {
       findWeight = convertWeight(values.getGameWeight());
       if (findWeight == null)
         return new SimpleErrorData("Recommend Data Error", "The provided game weight value is not valid");
@@ -307,7 +307,7 @@ public class RecommendController {
         }
       }
     
-      result = matchingGames.size();
+      result = matchingGames;
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
       //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
