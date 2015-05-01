@@ -65,7 +65,7 @@ public class WishListController {
      if (userID < 0)
        return new SimpleErrorData("Wishlist Data Error", "The provided userID was not valid");
      if ((!display.equalsIgnoreCase("none")) && (!display.equalsIgnoreCase("game")) && 
-         (!display.equalsIgnoreCase("compact")) && (!display.equalsIgnoreCase("game")))
+         (!display.equalsIgnoreCase("compact")) && (!display.equalsIgnoreCase("full")))
        return new SimpleErrorData("Wishlist Data Error", "The display value of " + display + " is not a valid display option");
      
      GamesDatabase database = null;
