@@ -159,7 +159,7 @@
                     <detectLinks>true</detectLinks>
                     <docencoding>UTF-8</docencoding>
                     <docfilessubdirs>true</docfilessubdirs>
-                    <source>1.6</source>
+                    <source>1.7</source>
                 </configuration>
                 <executions>
                   <execution>
@@ -236,7 +236,7 @@
                     <detectLinks>true</detectLinks>
                     <docencoding>UTF-8</docencoding>
                     <docfilessubdirs>true</docfilessubdirs>
-                    <source>1.6</source>
+                    <source>1.7</source>
                 </configuration>
             </plugin>
             <plugin>
