@@ -22,11 +22,15 @@ import com.ac.games.data.BGGGame;
 import com.ac.games.data.CollectionItem;
 import com.ac.games.data.Game;
 import com.ac.games.data.GameWeight;
+import com.ac.games.data.User;
 import com.ac.games.db.MongoDBFactory;
 import com.ac.games.db.exception.ConfigurationException;
 import com.ac.games.rest.Application;
 import com.ac.games.rest.controller.BGGDataController;
 import com.ac.games.rest.controller.CollectionItemController;
+import com.ac.games.rest.controller.UserController;
+import com.ac.games.rest.data.NewUserData;
+import com.ac.games.rest.data.UpdateItemEditables;
 import com.jayway.restassured.module.mockmvc.RestAssuredMockMvc;
 
 /**
@@ -50,7 +54,8 @@ public class CollectionItemControllerTest {
     Application.databasePort = 27017;
     Application.databaseName = "mockDB";
     try {
-      MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName).initializeDBConnection();
+      Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      Application.database.initializeDBConnection();
       
       System.out.println ("**********  Database Configuration Enabled  **********");
     } catch (ConfigurationException e) {
@@ -62,7 +67,7 @@ public class CollectionItemControllerTest {
   @After
   public void tearDown() {
     try {
-      MongoDBFactory.getMongoGamesDatabase().closeDBConnection();
+      Application.database.closeDBConnection();
     } catch (ConfigurationException e) {
       e.printStackTrace();
     }
@@ -82,6 +87,33 @@ public class CollectionItemControllerTest {
    */
   @Test
   public void testGameController() {
+    RestAssuredMockMvc.standaloneSetup(new UserController());
+    
+    System.out.println ("===  Generate Mock Data  ===");
+    //The New User entry:
+    NewUserData newUser = new NewUserData();
+    newUser.setUserName("junituser");
+    newUser.setPassword("resutinuj");
+    newUser.setFirstName("JUnit");
+    newUser.setLastName("User");
+    newUser.setEmailAddress("notarealaddress@email.com");
+    
+    System.out.println ("===  POST Request from BoardGameGeek through Service  ===");
+    given().
+      contentType("application/json").
+      body(newUser).
+    when().
+      post("/user").
+    then().
+      assertThat().
+        statusCode(200).
+        body("messageType", equalTo("Operation Successful")).
+        body("message", equalTo("The New User " + newUser.getUserName() + " was created."));
+
+    //Quick Version
+    System.out.println ("===  GET for Use Request from BoardGameGeek through Service  ===");
+    User reqUser = given().param("username", newUser.getUserName()).when().get("/user").as(User.class);
+    
     RestAssuredMockMvc.standaloneSetup(new BGGDataController());
     
     System.out.println ("===  Validation GET Request from BoardGameGeek through Service  ===");
@@ -169,21 +201,22 @@ public class CollectionItemControllerTest {
         body("weights", hasItems(GameWeight.MEDIUM.toString()));
     
     System.out.println ("===  PUT Request from Altered Content through Service  ===");
-    item.setDateAcquired(new Date(20000000));
+    UpdateItemEditables editables = new UpdateItemEditables();
     weights.add(GameWeight.FAMILY);
-    item.setWeights(weights);
+    editables.setGameWeights(weights);
+    editables.setOverrideWhere("During a Much Later JUnit Test");
     
     given().
       param("itemid", 7766L).
       contentType("application/json").
-      body(item).
+      body(editables).
     when().
       put("/collectionitem").
     then().
       assertThat().
         statusCode(200).
         body("messageType", equalTo("Operation Successful")).
-        body("message", equalTo("The Put Request Completed Successfully"));
+        body("message", equalTo("The Collection Item was Successfully Updated"));
     
     System.out.println ("===  Validation GET Request from Previous PUT through Service  ===");
     //Run our Select from BGG Master Data
@@ -200,6 +233,7 @@ public class CollectionItemControllerTest {
     System.out.println ("===  DELETE Request through Service  ===");
     given().
       param("itemid", 7766L).
+      param("userid", reqUser.getUserID()).
     when().
       delete("/collectionitem").
     then().
@@ -217,5 +251,18 @@ public class CollectionItemControllerTest {
       assertThat().
         statusCode(200).
         body("errorType", equalTo("Item Not Found"));
+    
+    RestAssuredMockMvc.standaloneSetup(new UserController());
+    System.out.println ("===  DELETE Request through Service  ===");
+    given().
+      param("userid", reqUser.getUserID()).
+    when().
+      delete("/user").
+    then().
+      assertThat().
+        statusCode(200).
+        body("messageType", equalTo("Operation Successful")).
+        body("message", equalTo("The Delete Request Completed Successfully"));
+    
   }
 }

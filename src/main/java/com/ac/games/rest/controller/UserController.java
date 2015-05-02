@@ -49,21 +49,23 @@ public class UserController {
     GamesDatabase database = null; 
     User user              = null;
     try {
-      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database = Application.database;
       database.initializeDBConnection();
       
       if (userID > 0) user = database.readUser(userID);
       else user = database.readUser(userName);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
     } finally {
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     if (user == null)
@@ -93,20 +95,22 @@ public class UserController {
 
     GamesDatabase database = null; 
     try {
-      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database = Application.database;
       database.initializeDBConnection();
       
       database.updateUser(user);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
     } finally {
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
@@ -137,13 +141,15 @@ public class UserController {
 
     GamesDatabase database = null; 
     try {
-      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database = Application.database;
       database.initializeDBConnection();
       
       //First we need to see if this user exists.  If it does, reject the request.
       User existUser = database.readUser(userData.getUserName());
       if (existUser != null) {
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("User Already Exists", "This User Name already exists in the database");
       }
       
@@ -174,14 +180,14 @@ public class UserController {
       database.insertCollection(newCollection);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
     } finally {
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
 
     return new SimpleMessageData("Operation Successful", "The New User " + userData.getUserName() + " was created.");
@@ -194,13 +200,15 @@ public class UserController {
 
     GamesDatabase database = null; 
     try {
-      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database = Application.database;
       database.initializeDBConnection();
       
       //First we need to see if this user exists.  If it does, reject the request.
       User existUser = database.readUser(userID);
       if (existUser == null) {
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("No Such User", "No User with this ID Exists");
       }
       
@@ -215,14 +223,14 @@ public class UserController {
       
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
     } finally {
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Delete Request Completed Successfully");

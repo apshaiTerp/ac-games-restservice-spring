@@ -88,11 +88,13 @@ public class MMDataController {
     MiniatureMarketPriceData dbSource = null;
     
     if ((source.equalsIgnoreCase("db")) || (source.equalsIgnoreCase("hybrid"))) {
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       GamesDatabase database = null; 
       MiniatureMarketPriceData data = null;
       
       try {
-        database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+        database = Application.database;
         database.initializeDBConnection();
         
         if (!review.equalsIgnoreCase("null"))
@@ -101,14 +103,14 @@ public class MMDataController {
         
       } catch (DatabaseOperationException doe) {
         doe.printStackTrace();
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
       } catch (ConfigurationException ce) {
         ce.printStackTrace();
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
       } finally {
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       }
       
       if (data == null)
@@ -277,20 +279,20 @@ public class MMDataController {
     if (sync.equalsIgnoreCase("y")) {
       GamesDatabase database = null; 
       try {
-        database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+        database = Application.database;
         database.initializeDBConnection();
         
         database.updateMMPriceData(dbSource);
       } catch (DatabaseOperationException doe) {
         doe.printStackTrace();
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
       } catch (ConfigurationException ce) {
         ce.printStackTrace();
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
         return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
       } finally {
-        try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+        //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       }
     }
     return dbSource;
@@ -331,7 +333,9 @@ public class MMDataController {
 
     GamesDatabase database = null; 
     try {
-      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database = Application.database;
       database.initializeDBConnection();
       
       if (newState == null)
@@ -399,14 +403,14 @@ public class MMDataController {
       }//end else we have a good state
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
     } finally {
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Put Request Completed Successfully");
@@ -429,20 +433,22 @@ public class MMDataController {
     
     GamesDatabase database = null; 
     try {
-      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database = Application.database;
       database.initializeDBConnection();
       
       database.insertMMPriceData(data);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
     } finally {
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Post Request Completed Successfully");
@@ -462,20 +468,22 @@ public class MMDataController {
     
     GamesDatabase database = null; 
     try {
-      database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      if (Application.database == null)
+        Application.database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
+      database = Application.database;
       database.initializeDBConnection();
       
       database.deleteMMPriceData(mmID);
     } catch (DatabaseOperationException doe) {
       doe.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Operation Error", "An error occurred running the request: " + doe.getMessage());
     } catch (ConfigurationException ce) {
       ce.printStackTrace();
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
       return new SimpleErrorData("Database Configuration Error", "An error occurred accessing the database: " + ce.getMessage());
     } finally {
-      try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
+      //try { if (database != null) database.closeDBConnection(); } catch (Throwable t2) { /** Ignore Errors */ }
     }
     
     return new SimpleMessageData("Operation Successful", "The Delete Request Completed Successfully");

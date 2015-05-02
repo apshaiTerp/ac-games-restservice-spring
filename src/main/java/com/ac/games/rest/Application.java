@@ -24,8 +24,8 @@ public class Application extends SpringBootServletInitializer {
   public static GamesDatabase database;
   
   /** The Host URL for our Mongo Instance */
-  public static String databaseHost = "192.168.1.9";
-  //public static String databaseHost = "localhost";
+  //public static String databaseHost = "192.168.1.9";
+  public static String databaseHost = "localhost";
   /** The Host Port for our Mongo Instance */
   public static int    databasePort = 27017;
   /** The Host Database Name for our Mongo Database */
@@ -43,7 +43,6 @@ public class Application extends SpringBootServletInitializer {
     try {
       database = MongoDBFactory.createMongoGamesDatabase(databaseHost, databasePort, databaseName);
       database.initializeDBConnection();
-      database.closeDBConnection();
     } catch (ConfigurationException e) {
       e.printStackTrace();
       System.out.println ("Shutting down system!");
@@ -55,6 +54,12 @@ public class Application extends SpringBootServletInitializer {
   
   @PreDestroy
   public static void shutdownHook() {
+    try {
+      database.closeDBConnection();
+    } catch (ConfigurationException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
     System.out.println (">>>  I'm inside the shutdownHook  <<");
   }
 }

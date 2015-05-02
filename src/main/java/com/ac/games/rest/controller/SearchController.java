@@ -170,7 +170,7 @@ public class SearchController {
       database = MongoDBFactory.createMongoGamesDatabase(Application.databaseHost, Application.databasePort, Application.databaseName);
       database.initializeDBConnection();
       
-      games = database.readAdHocBGGQuery(gameQuery, limit);
+      games = database.readBGGGameByName(name, true, null);
       if (games == null)
         return new SimpleErrorData("Game Not Found", "The requested item(s) could not be found in the database.");
     } catch (DatabaseOperationException doe) {
